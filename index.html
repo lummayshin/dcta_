@@ -1,0 +1,2309 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>KLXG Helps You</title>
+<style>
+  body{margin:0;display:flex;justify-content:center;align-items:center;min-height:100vh;background:#eef2f7;font-family:-apple-system,"PingFang SC",sans-serif;}
+  .app{width:420px;height:760px;background:#fff;border-radius:18px;box-shadow:0 12px 40px rgba(0,0,0,.15);display:flex;flex-direction:column;overflow:hidden;}
+  .header{background:#2f6fed;color:#fff;padding:16px 20px;font-size:17px;font-weight:600;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px 0;}
+  .header small{display:block;font-weight:400;font-size:12px;opacity:.85;margin-top:4px;}
+  .chat{flex:1;padding:16px;overflow-y:auto;background:#f7f9fc;}
+  .msg{max-width:82%;padding:10px 14px;border-radius:14px;margin-bottom:10px;line-height:1.5;font-size:14px;white-space:pre-wrap;word-break:break-word;}
+  .agent{background:#fff;border:1px solid #e3e8f0;color:#1c2536;}
+  .user{background:#2f6fed;color:#fff;margin-left:auto;}
+  .sys{background:#fff7e6;border:1px solid #ffe0a3;color:#8a5a00;font-size:13px;}
+  .risk{background:#fff0ef;border:1px solid #ffc2be;color:#8a1f16;font-size:13px;}
+  .injection-flag{font-size:11px;color:#8a1f16;background:#fff0ef;border:1px solid #ffc2be;border-radius:6px;padding:2px 8px;margin-bottom:6px;display:inline-block;opacity:.7;}
+  .options{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;}
+  .opt{background:#e8f0ff;color:#2f6fed;border:1px solid #b8d0ff;border-radius:20px;padding:8px 16px;font-size:14px;cursor:pointer;}
+  .opt:active{background:#2f6fed;color:#fff;}
+  .riskbtn{background:#fff0ef;color:#8a1f16;border:1px solid #ffb3ac;border-radius:20px;padding:8px 16px;font-size:14px;cursor:pointer;display:inline-block;}
+  .riskbtn:active{background:#e2453a;color:#fff;}
+  .pendingPanel{border-top:1px solid #e3e8f0;background:#fbfcfe;max-height:260px;overflow-y:auto;padding:10px 12px;}
+  .pendingPanel:empty{display:none;padding:0;}
+  .pending-card{background:#fff;border:1px solid #e3e8f0;border-radius:12px;padding:10px 12px;margin-bottom:8px;}
+  .pending-card.pending-high{border-color:#ffb3ac;background:#fff6f5;}
+  .pending-card.pending-medium{border-color:#ffe0a3;background:#fffaf0;}
+  .pending-label{font-size:14px;font-weight:600;color:#1c2536;margin-bottom:4px;}
+  .pending-reason{font-size:12px;color:#8a5a00;margin-bottom:6px;line-height:1.5;}
+  .pending-btns{display:flex;gap:8px;margin-top:4px;}
+  .pending-btns .opt, .pending-btns .riskbtn{padding:6px 14px;font-size:13px;}
+  .inputbar{display:flex;border-top:1px solid #e3e8f0;padding:10px;gap:8px;align-items:center;}
+  .inputbar input{flex:1;border:1px solid #d6dde8;border-radius:10px;padding:10px 12px;font-size:14px;outline:none;}
+  .inputbar input:disabled{background:#f1f3f7;color:#9aa3b2;}
+  .inputbar button{background:#2f6fed;color:#fff;border:none;border-radius:10px;padding:0 14px;height:38px;font-size:14px;cursor:pointer;}
+  .inputbar button:disabled{background:#b9c6e6;cursor:default;}
+  .mic{background:#fff;color:#2f6fed;border:1px solid #b8d0ff;border-radius:50%;width:38px;height:38px;font-size:16px;cursor:pointer;padding:0;}
+  .mic.listening{background:#ff4d4f;color:#fff;border-color:#ff4d4f;animation:pulse 1s infinite;}
+  .lang{background:#fff;color:#2f6fed;border:1px solid #b8d0ff;border-radius:10px;height:38px;font-size:13px;cursor:pointer;padding:0 10px;}
+  .tts{background:#fff;color:#2f6fed;border:1px solid #b8d0ff;border-radius:50%;width:38px;height:38px;font-size:16px;cursor:pointer;padding:0;opacity:.45;transition:opacity .2s;}
+  .tts.active{opacity:1;background:#e8f0ff;border-color:#2f6fed;}
+  @keyframes pulse{0%{opacity:1;}50%{opacity:.6;}100%{opacity:1;}}
+  .typing-indicator{color:#6b7690;font-style:italic;animation:pulse 1.2s infinite;}
+  .modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;justify-content:center;align-items:center;}
+  .modal.show{display:flex;}
+  .modal-box{background:#fff;border-radius:16px;padding:24px;width:300px;text-align:center;}
+  .modal-box button{width:100%;padding:10px;border:none;border-radius:10px;font-size:14px;cursor:pointer;margin-bottom:8px;}
+  .modal-box input{width:100%;box-sizing:border-box;padding:10px;border:1px solid #d6dde8;border-radius:10px;margin-bottom:12px;font-size:14px;}
+  .ok{background:#2f6fed;color:#fff;}
+  .fail{background:#f1f3f7;color:#333;}
+  .hint{font-size:12px;color:#8a93a3;margin-top:-4px;margin-bottom:12px;line-height:1.5;}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <span style="flex:0 1 auto;">KLXG Helps You · 银行转账陪护</span>
+    <span style="font-size:11px;font-weight:400;opacity:.85;display:flex;align-items:center;gap:8px;flex:0 1 auto;flex-wrap:wrap;justify-content:flex-end;">
+      <span style="display:inline-flex;align-items:center;gap:3px;white-space:nowrap;">
+        <input type="checkbox" id="testModeToggle" style="margin:0;">
+        <span>测试模式</span>
+      </span>
+      <span style="display:inline-flex;align-items:center;gap:3px;white-space:nowrap;">
+        <input type="checkbox" id="localOnlyToggle" style="margin:0;">
+        <span>本地模式（不耗API额度）</span>
+      </span>
+      <span id="apiStatusBadge" onclick="document.getElementById('keyModal').classList.add('show')"
+        title="点击切换/输入API key"
+        style="cursor:pointer;padding:2px 8px;border-radius:10px;font-size:11px;white-space:nowrap;background:#f0f0f0;color:#888;">
+        ⚪ 无key·本地
+      </span>
+      <span id="auditLogLink" title="导出结构化审计日志" style="cursor:pointer;text-decoration:underline;white-space:nowrap;">审计日志</span>
+      <span id="resetLink" style="cursor:pointer;text-decoration:underline;white-space:nowrap;">重新开始</span>
+    </span>
+    <small style="width:100%;">一句话可以说好几件事，每件事都会分开、独立确认</small>
+  </div>
+  <div class="chat" id="chat"></div>
+  <div class="pendingPanel" id="pendingPanel"></div>
+  <div class="inputbar">
+    <button class="tts" id="tts" title="开关语音播报">🔊</button>
+    <button class="mic" id="mic" title="按住说话">🎤</button>
+    <button class="lang" id="lang" title="切换语音语言">中</button>
+    <input id="input" placeholder="说点什么…"/>
+    <button id="send">发送</button>
+  </div>
+</div>
+
+<div class="modal" id="faceModal">
+  <div class="modal-box">
+    <h3>面部识别确认</h3>
+    <p id="faceModalDetail">请本人正对屏幕，识别通过后才会提交转账。</p>
+    <button class="ok" id="facePass">模拟识别通过</button>
+    <button class="fail" id="faceFail">取消</button>
+  </div>
+</div>
+
+<div class="modal" id="keyModal">
+  <div class="modal-box" style="width:340px;">
+    <h3 style="margin-bottom:8px;">连接 AI 服务</h3>
+    <!-- 选择用哪套 API -->
+    <div style="display:flex;gap:8px;margin-bottom:14px;">
+      <button id="tabGroq" onclick="switchApiTab('groq')"
+        style="flex:1;padding:8px;border-radius:8px;border:2px solid #1677ff;background:#e8f0fe;color:#1677ff;font-size:13px;cursor:pointer;font-weight:600;">
+        Groq
+      </button>
+      <button id="tabAdp" onclick="switchApiTab('adp')"
+        style="flex:1;padding:8px;border-radius:8px;border:2px solid #d6dde8;background:#fff;color:#888;font-size:13px;cursor:pointer;">
+        Tencent ADP
+      </button>
+    </div>
+
+    <!-- Groq 面板 -->
+    <div id="panelGroq">
+      <p style="font-size:12px;color:#555;margin-bottom:8px;">输入 Groq API Key（只存在这次浏览器session里，不会上传）。</p>
+      <input id="keyInput" type="password" placeholder="gsk_..." autocomplete="off"/>
+      <div class="hint" style="font-size:12px;color:#888;margin-bottom:10px;">没有key？去 console.groq.com 免费申请。</div>
+    </div>
+
+    <!-- ADP 面板 -->
+    <div id="panelAdp" style="display:none;">
+      <p style="font-size:12px;color:#555;margin-bottom:8px;">输入 Tencent ADP AppKey（Publish → Service status → API management → Copy）。</p>
+      <input id="adpKeyInput" type="password" placeholder="adp-..." autocomplete="off"/>
+      <div class="hint" style="font-size:12px;color:#888;margin-bottom:10px;">只存在这次浏览器session里，不会上传。</div>
+    </div>
+
+    <button class="ok" id="keySave">保存并开始</button>
+  </div>
+</div>
+
+<script>
+const CONFIG = {
+  // ── Groq (OpenAI-compatible) ──────────────────────────────────────────────
+  apiUrl:   "https://api.groq.com/openai/v1/chat/completions",
+  apiKey:   null,   // Groq API key (gsk_...)
+  model:    "openai/gpt-oss-20b",
+
+  // ── Tencent ADP ───────────────────────────────────────────────────────────
+  adpUrl:    "https://wss.lke.tencentcloud.com/adp/v2/chat",
+  adpKey:    null,   // ADP AppKey
+  // ADP 用 ConversationId 在平台侧维护多轮上下文，每次会话重新生成一个
+  // （不同于 Groq 方案：每次都把完整历史发过去）
+  adpConvId: null,
+  adpVisitorId: "dcta-user-" + Math.random().toString(36).slice(2, 10),
+
+  // ── 当前使用哪套 API ──────────────────────────────────────────────────────
+  // "groq" | "adp"
+  apiMode: "groq"
+};
+
+const MOCK_BANK = {
+  user_account: { user_id:"U001", name:"KuaileXG", account_number:"522-xxxxx-7", balance:20265.20, currency:"SGD" },
+  contacts: [
+    { contact_id:"C001", name:"Alex Tan", registered_name:"Tan Wei Ming", bank_name:"DBS Bank", account_number:"011-xxxxx-1234", relationship:"friend",
+      transaction_count:14, avg_amount:78.50, max_amount:150 },
+    { contact_id:"C002", name:"Mom", registered_name:"Tan Siew Lan", bank_name:"OCBC Bank", account_number:"022-xxxxx-5678", relationship:"family",
+      address_terms:["妈妈","老妈","母亲","mom","mother","mum"],
+      transaction_count:40, avg_amount:500, max_amount:1200 },
+    { contact_id:"C003", name:"SP Group (Utilities)", registered_name:"SP Services Ltd", bank_name:"DBS Bank", account_number:"033-xxxxx-0001", relationship:"biller",
+      transaction_count:27, avg_amount:145, max_amount:220 },
+    { contact_id:"C004", name:"Landlord - Mr Koh", registered_name:"Koh Beng Huat", bank_name:"UOB", account_number:"044-xxxxx-9999", relationship:"landlord",
+      address_terms:["房东","landlord"],
+      transaction_count:20, avg_amount:2200, max_amount:2200 }
+  ],
+  recent_transactions: [
+    { transaction_id:"T101", datetime:"2026-09-01T14:32:05+08:00", type:"outgoing", recipient_id:"C004", amount:2200, currency:"SGD", status:"completed", reference:"Rent September" },
+    { transaction_id:"T102", datetime:"2026-08-30T09:15:22+08:00", type:"outgoing", recipient_id:"C001", amount:90,   currency:"SGD", status:"completed", reference:"Lunch" },
+    { transaction_id:"T103", datetime:"2026-08-28T18:45:10+08:00", type:"outgoing", recipient_id:"C003", amount:152,  currency:"SGD", status:"completed", reference:"Utilities bill" },
+    { transaction_id:"T104", datetime:"2026-09-01T08:00:00+08:00", type:"outgoing", recipient_id:"C002", amount:500,  currency:"SGD", status:"completed", reference:"Monthly allowance" },
+    { transaction_id:"T201", datetime:"2026-09-15T11:20:30+08:00", type:"incoming", sender_id:"C002", amount:300,  currency:"SGD", status:"completed", reference:"Top up" },
+    { transaction_id:"T202", datetime:"2026-09-12T16:05:44+08:00", type:"incoming", sender_id:"C001", amount:50,   currency:"SGD", status:"completed", reference:"Refund" },
+    { transaction_id:"T203", datetime:"2026-09-05T10:30:00+08:00", type:"incoming", sender_id:"C003", amount:20,   currency:"SGD", status:"refund",    reference:"Overpayment" },
+    { transaction_id:"T204", datetime:"2026-08-20T19:00:00+08:00", type:"incoming", sender_id:"C004", amount:100,  currency:"SGD", status:"completed", reference:"Deposit return" },
+    { transaction_id:"T301", datetime:"2026-09-18T10:00:00+08:00", type:"outgoing", recipient_id:null, recipient_account_number:"077-xxxxx-3333", amount:180, currency:"SGD", status:"completed", reference:"Personal transfer" },
+    { transaction_id:"T302", datetime:"2026-09-17T15:30:00+08:00", type:"outgoing", recipient_id:null, recipient_account_number:"066-xxxxx-8888", amount:220, currency:"SGD", status:"completed", reference:"Personal transfer" }
+  ],
+  flagged_accounts: [
+    { account_number: "099-xxxxx-0000", reported_reason: "先前有多起冒充执法人员诈骗案关联举报" },
+    { account_number: "088-xxxxx-4321", reported_reason: "先前有网购诈骗（收款后不发货）关联举报" },
+    // 纯数字、没有xxxxx打码——专门给本地模式测试用：本地解析器回答"账号是
+    // 多少"时只认数字，打码符号会被滤掉，没法还原出跟上面两条完全一致的
+    // 字符串去匹配。demo/提交前如果不需要这条，直接删掉这一行即可。
+    { account_number: "66998877", reported_reason: "（本地测试用）先前有诈骗关联举报" }
+  ]
+};
+
+const MANIPULATION_KEYWORDS = [
+  // 冒充执法/官方机构（英文 + 中文，两边都要覆盖，否则中文对话完全测不出来）
+  "police", "law enforcement", "officer", "investigation",
+  "cooperate with the investigation", "under investigation",
+  "money laundering", "criminal case", "government official",
+  "警察", "执法", "警官", "调查", "配合调查", "立案", "洗钱", "刑事案件",
+  "政府官员", "公务员", "检察官", "法院",
+
+  // 冒充银行/客服（这条专门对应"银行叫你转钱"这种，不是只有警察才算）
+  "account frozen", "freeze your account", "suspicious transaction",
+  "bank staff", "customer service officer",
+  "银行", "银行工作人员", "银行客服", "客服", "账户冻结", "冻结账户",
+  "账户异常", "可疑交易", "核实身份", "验证身份", "安全账户",
+
+  // 紧迫感/保密压力
+  "right away", "transfer immediately", "transfer now", "urgent",
+  "don't tell anyone", "keep this confidential", "do not disclose",
+  "马上转", "现在转", "立刻转", "尽快转", "紧急", "不要告诉", "不能告诉",
+  "保密", "别声张", "不要说出去",
+
+  // 验证码/密码类钓鱼
+  "verification code", "one-time password", "otp", "digital token",
+  "验证码", "动态密码", "一次性密码", "手机验证码",
+
+  // 网购诈骗（新加坡案件量最大的诈骗类型）
+  "bank transfer only", "no buyer protection", "no escrow",
+  "private transfer", "pay before shipping", "limited stock",
+  "只收银行转账", "不走担保交易", "私下转账", "先转账才发货", "现货有限"
+];
+
+function scoreUnfamiliarRecipient(transaction, contacts) {
+  const recipientId = transaction.recipient_id;
+  if (recipientId === null || recipientId === undefined) {
+    return { score: 30, reason: "Brand new recipient, no transfer history on file" };
+  }
+  const contact = contacts.find(c => c.contact_id === recipientId);
+  if (!contact) return { score: 30, reason: "Recipient ID not found in the contacts list" };
+  const count = contact.transaction_count || 0;
+  if (count >= 10) return { score: 0,  reason: `Frequent contact, ${count} past transfers` };
+  if (count >= 3)  return { score: 10, reason: `Limited transfer history (${count} transfers)` };
+  return { score: 20, reason: `Almost a new recipient (only ${count} transfers on record)` };
+}
+
+function scoreAmountDeviation(transaction, contacts) {
+  const amount = transaction.amount || 0;
+  const recipientId = transaction.recipient_id;
+  const contact = recipientId ? contacts.find(c => c.contact_id === recipientId) : null;
+  if (!contact || !contact.avg_amount) {
+    if (amount >= 3000) return { score: 25, reason: `No history to compare against, and the amount is large ($${amount})` };
+    return { score: 5, reason: "No history to compare against, amount is within a common range" };
+  }
+  const avg = contact.avg_amount;
+  const ratio = avg ? amount / avg : 0;
+  if (ratio >= 10) return { score: 30, reason: `Amount is ${ratio.toFixed(1)}x the historical average (avg $${avg}, this transfer $${amount})` };
+  if (ratio >= 3)  return { score: 18, reason: `Amount is significantly above the historical average (avg $${avg}, this transfer $${amount})` };
+  if (ratio >= 1.5) return { score: 8, reason: "Amount is somewhat above the historical average" };
+  return { score: 0, reason: "Amount is within the normal historical range" };
+}
+
+function scoreManipulationLanguage(transaction) {
+  const message = (transaction.user_message || "").toLowerCase();
+  const hits = MANIPULATION_KEYWORDS.filter(kw => message.includes(kw.toLowerCase()));
+  const keywordScore = hits.length >= 3 ? 30 : (hits.length >= 1 ? 15 : 0);
+
+  // 模型对这句话做的语义判断（不是关键词匹配，是真的读懂了在说什么）——
+  // 只把它当成"证据"，换算成分数的公式还是写死的，不是模型说了算。
+  const signal = transaction.manipulation_signal; // "strong" | "mild" | "none" | undefined
+  const semanticScore = signal === "strong" ? 30 : (signal === "mild" ? 15 : 0);
+
+  const score = Math.max(keywordScore, semanticScore);
+
+  if (score === 0) {
+    return { score: 0, reason: "No manipulation-language signals found (checked both keyword list and model's semantic read)" };
+  }
+  const parts = [];
+  if (hits.length) parts.push(`keyword hits: ${JSON.stringify(hits)}`);
+  if (signal && signal !== "none") parts.push(`model's semantic read (${signal}): ${transaction.manipulation_evidence || "no detail given"}`);
+  const label = score >= 30 ? "Multiple/strong manipulation-language signals detected" : "Manipulation-language signal detected";
+  return { score: score, reason: `${label} — ${parts.join("; ")}` };
+}
+
+function scoreInfoMismatch(transaction, contacts) {
+  const statedName = transaction.recipient_name_given;
+  const statedAccount = transaction.recipient_account_number;
+  if (!statedName) return { score: 0, reason: "No name information available to cross-check" };
+  for (const c of contacts) {
+    if (c.name === statedName) {
+      if (statedAccount && statedAccount !== c.account_number) {
+        return { score: 10, reason: `Name matches ${statedName}, but the account number does not match our records` };
+      }
+      return { score: 0, reason: "Name matches our records" };
+    }
+  }
+  return { score: 0, reason: "Name did not match any known contact, treated as a new recipient (already scored in dimension 1)" };
+}
+
+function scoreFlaggedAccount(transaction) {
+  const account = transaction.recipient_account_number;
+  if (!account) return { score: 0, reason: "No account number available to check against shared intelligence" };
+  const clean = String(account).replace(/\s/g, "");
+  const hit = (MOCK_BANK.flagged_accounts || []).find(f => f.account_number === clean);
+  if (hit) return { score: 50, reason: `这个账号之前有相关记录：${hit.reported_reason}` };
+  return { score: 0, reason: "No prior reports found for this account in shared intelligence" };
+}
+
+function calculateRiskScore(transaction, userHistory) {
+  const contacts = userHistory.contacts || [];
+  const r1 = scoreUnfamiliarRecipient(transaction, contacts);
+  const r2 = scoreAmountDeviation(transaction, contacts);
+  const r3 = scoreManipulationLanguage(transaction);
+  const r4 = scoreInfoMismatch(transaction, contacts);
+  const r5 = scoreFlaggedAccount(transaction);
+  const total = r1.score + r2.score + r3.score + r4.score;
+  let level, action;
+  if (total >= 60)      { level = "HIGH";   action = "Hold the transaction, actively verify, and recommend human review"; }
+  else if (total >= 30) { level = "MEDIUM"; action = "Ask for clarification before deciding whether to proceed"; }
+  else                  { level = "LOW";    action = "Proceed with confirmation"; }
+  if (r5.score > 0) { level = "HIGH"; action = "Hold the transaction, actively verify, and recommend human review"; }
+  return {
+    total_score: total, risk_level: level, recommended_action: action,
+    breakdown: { unfamiliar_recipient: r1, amount_deviation: r2, manipulation_language: r3, info_mismatch: r4, shared_intelligence_check: r5 }
+  };
+}
+
+function isNewRecipientAction(action) { return action.intent === "transfer" && !action.recipient_id; }
+
+function scoreStructuringWithinBatch(transferActions) {
+  const newOnes = transferActions.filter(isNewRecipientAction);
+  if (newOnes.length < 2) return { score: 0, reason: "This batch does not show a split-transfer pattern" };
+  const total = newOnes.reduce((sum, a) => sum + (Number(a.amount) || 0), 0);
+  if (total >= 500) {
+    return { score: 20, reason: `${newOnes.length} separate transfers to new recipients in one message, totaling $${total} — a pattern sometimes used to stay under per-transaction scrutiny` };
+  }
+  return { score: 0, reason: "Multiple new-recipient transfers found, but combined amount is not unusual" };
+}
+
+function scoreVelocityToUnknownRecipients(transferActions, userHistory, windowDays) {
+  windowDays = windowDays || 3;
+  const cutoff = new Date(Date.now() - windowDays * 24 * 60 * 60 * 1000);
+  const recentToUnknown = (userHistory.recent_transactions || []).filter(function (tx) {
+    if (tx.type !== "outgoing" || tx.recipient_id) return false;
+    const txDate = new Date(tx.datetime);
+    return !isNaN(txDate) && txDate >= cutoff;
+  });
+  const historicalTotal = recentToUnknown.reduce((sum, tx) => sum + (Number(tx.amount) || 0), 0);
+  const batchNewTotal = transferActions.filter(isNewRecipientAction).reduce((sum, a) => sum + (Number(a.amount) || 0), 0);
+  const rollingTotal = historicalTotal + batchNewTotal;
+  if (batchNewTotal > 0 && rollingTotal >= 500) {
+    return { score: 20, reason: `In the last ${windowDays} days, $${historicalTotal} has already gone to unfamiliar recipients; with this batch that reaches $${rollingTotal} — worth a closer look even though each individual transfer looks small` };
+  }
+  return { score: 0, reason: "Recent outflow to unfamiliar recipients is within a normal range" };
+}
+
+function scoreCognitiveOverload(actions) {
+  const amounts = actions.map(a => Number(a.amount) || 0).filter(a => a > 0);
+  const manyActions = actions.length >= 3;
+  const wideSpread = amounts.length >= 2 && (Math.max(...amounts) / Math.max(Math.min(...amounts), 1)) >= 20;
+  if (manyActions || wideSpread) {
+    const parts = [];
+    if (manyActions) parts.push(`${actions.length} tasks bundled into one message`);
+    if (wideSpread) parts.push("amounts across tasks vary by a very large ratio");
+    return { score: 10, reason: "Possible cognitive-overload pattern: " + parts.join("; ") };
+  }
+  return { score: 0, reason: "Number and size of bundled tasks looks ordinary" };
+}
+
+function calculateBatchRisk(actions, userHistory) {
+  const transferActions = actions.filter(a => a.intent === "transfer");
+  const structuring = scoreStructuringWithinBatch(transferActions);
+  const velocity = scoreVelocityToUnknownRecipients(transferActions, userHistory);
+  const overload = scoreCognitiveOverload(actions);
+  return actions.map(function (action) {
+    if (action.intent !== "transfer") {
+      return { total_score: 0, risk_level: "N/A", recommended_action: "No transfer risk applicable to this action", breakdown: {} };
+    }
+    const base = calculateRiskScore(action, userHistory);
+    let extra = 0;
+    const extraBreakdown = {};
+    if (isNewRecipientAction(action)) {
+      if (structuring.score > 0) { extra += structuring.score; extraBreakdown.structuring_pattern = structuring; }
+      if (velocity.score > 0)    { extra += velocity.score;    extraBreakdown.recent_outflow_velocity = velocity; }
+    }
+    if (overload.score > 0) { extra += overload.score; extraBreakdown.cognitive_overload = overload; }
+    const total = base.total_score + extra;
+    let level = base.risk_level;
+    if (level !== "HIGH") {
+      if (total >= 60) level = "HIGH";
+      else if (total >= 30) level = "MEDIUM";
+      else level = "LOW";
+    }
+    const recommended_action =
+      level === "HIGH"   ? "Hold the transaction, actively verify, and recommend human review" :
+      level === "MEDIUM" ? "Ask for clarification before deciding whether to proceed" :
+                            "Proceed with confirmation";
+    return Object.assign({}, base, { total_score: total, risk_level: level, recommended_action: recommended_action,
+      breakdown: Object.assign({}, base.breakdown, extraBreakdown) });
+  });
+}
+
+function resolveRelativeAmounts(actions, currentBalance) {
+  const explicitSum = actions.filter(a => a.amount_type !== "remaining" && a.amount)
+    .reduce((s, a) => s + Number(a.amount), 0);
+  return actions.map(function (a) {
+    if (a.amount_type === "remaining") {
+      return Object.assign({}, a, { amount: Math.max(0, currentBalance - explicitSum), resolved_from_remaining: true });
+    }
+    return a;
+  });
+}
+
+const state = { history: [], busy: false, balance: MOCK_BANK.user_account.balance, displayLog: [], pendingQueue: [], unresolvedQuestion: null, sessionTransactions: [], deferredQuestions: [], auditLog: [], batchFinishDone: false, finishUpDone: false };
+
+const chat = document.getElementById("chat");
+const pendingPanelEl = document.getElementById("pendingPanel");
+const input = document.getElementById("input");
+const sendBtn = document.getElementById("send");
+const micBtn = document.getElementById("mic");
+const langBtn = document.getElementById("lang");
+const ttsBtn = document.getElementById("tts");
+const faceModal = document.getElementById("faceModal");
+const faceModalDetail = document.getElementById("faceModalDetail");
+const keyModal = document.getElementById("keyModal");
+const keyInput = document.getElementById("keyInput");
+const keySave = document.getElementById("keySave");
+let faceModalTarget = null;
+
+// ===== TTS 语音播报 =====
+// 纯 UI 能力，不碰任何业务逻辑。只在 addMsg 显示 agent 消息时触发。
+let ttsEnabled = false;
+// 预热语音列表——有些浏览器 getVoices() 初始为空，需要等 voiceschanged 事件
+if ("speechSynthesis" in window) {
+  window.speechSynthesis.getVoices();
+  window.speechSynthesis.onvoiceschanged = function () {
+    window.speechSynthesis.getVoices();
+  };
+}
+function detectLang(text) {
+  var cjk = (text.match(/[\u4e00-\u9fff\u3400-\u4dbf]/g) || []).length;
+  var total = text.replace(/\s/g, "").length;
+  if (total === 0) return "zh-CN";
+  return cjk / total > 0.3 ? "zh-CN" : "en-US";
+}
+function pickVoice(lang) {
+  var voices = window.speechSynthesis.getVoices();
+  if (!voices.length) return null;
+  // 先找完全匹配的（zh-CN / en-US）
+  var exact = voices.find(function (v) { return v.lang === lang; });
+  if (exact) return exact;
+  // 退而求其次：前缀匹配（zh / en）
+  var prefix = lang.split("-")[0];
+  var partial = voices.find(function (v) { return v.lang.startsWith(prefix); });
+  return partial || voices[0];
+}
+function speakTTS(text) {
+  if (!ttsEnabled || !text) return;
+  if (!("speechSynthesis" in window)) return;
+  // 打断当前正在念的，避免叠在一起
+  window.speechSynthesis.cancel();
+  var lang = detectLang(text);
+  var v = pickVoice(lang);
+  var u = new SpeechSynthesisUtterance(text);
+  u.lang = lang;
+  if (v) u.voice = v;
+  // 中文语速慢一点咬字更清晰；英文保持正常语速
+  u.rate = lang === "zh-CN" ? 0.85 : 0.92;
+  u.pitch = 1.0;
+  u.volume = 1.0;
+  // cancel 后短延迟再 speak，够引擎重置即可，不会感觉慢
+  setTimeout(function () {
+    window.speechSynthesis.speak(u);
+  }, 60);
+}
+function cancelTTS() {
+  if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+}
+ttsBtn.onclick = function () {
+  ttsEnabled = !ttsEnabled;
+  ttsBtn.classList.toggle("active", ttsEnabled);
+  ttsBtn.textContent = ttsEnabled ? "🔊" : "🔈";
+  ttsBtn.title = ttsEnabled ? "关闭语音播报" : "开启语音播报";
+  if (ttsEnabled) {
+    // 打开时念一句测试音，让用户立刻知道有没有声音
+    speakTTS("语音播报已开启。");
+  } else {
+    cancelTTS();
+  }
+};
+
+// ===== Prompt Injection 检测 =====
+// 与 scoreManipulationLanguage（诈骗话术检测，给风险打分用）完全独立。
+// 这里检测的是"用户输入本身在试图操纵 AI 的行为"，不是"有人在操纵用户去转账"。
+// 检测到也不阻止消息正常处理，只做低调标记 + console.warn 记录。
+const INJECTION_PATTERNS = [
+  // 英文常见注入话术
+  /ignore\s+(all\s+)?(previous|prior)\s+(instructions?|prompts?|rules?|directions?)/i,
+  /forget\s+(everything|all\s+(previous|prior)\s+(instructions?|prompts?))/i,
+  /disregard\s+(all\s+)?(previous|prior|above)\s+(instructions?|prompts?|rules?)/i,
+  /you\s+are\s+now\s+/i,
+  /act\s+as\s+(if\s+you\s+are|a\s+DAN|an?\\s+unrestricted)/i,
+  /from\s+now\s+on[,\s]+you\s+are/i,
+  /jailbreak/i,
+  /\bDAN\b.*mode/i,
+  /no\s+(restrictions?|restrict|limits?|rules?|restrictions?\s+apply)/i,
+  /system\s*:\s/i,           // "system:" 前缀伪装系统消息
+  /assistant\s*:\s/i,        // "assistant:" 前缀伪装助手回复
+  /\[system\]/i,
+  /\bdev\s*mode\b/i,
+  /override\s+(your|the)\s+(instructions?|rules?|system\s+prompt)/i,
+  /reveal\s+(your|the)\s+(system\s+)?prompt/i,
+  /what\s+(are|is)\s+your\s+(system\s+)?(instructions?|prompts?|rules?)/i,
+  /unrestricted\s+(mode|assistant|ai)/i,
+  /pretend\s+(you\s+are|to\s+be\s+an?\s+unrestricted)/i,
+
+  // 中文常见注入话术
+  /忽略(之前|前面|上面|先前)(的)?(所有)?(指令|提示|规则|话|设定|要求)/,
+  /无视(之前|前面|上面|先前)(的)?(所有)?(指令|提示|规则|话|设定|要求)/,
+  /忘记(之前|前面|上面|先前)(说的|的)?(所有)?(指令|提示|规则|话|设定)/,
+  /你现在是/,
+  /从现在开始你(是|就是)/,
+  /扮演(一个|一名)?(没有限制|无限制|不受限制)/,
+  /以下(内容|指令|规则)?(不受|没有|无)(限制|约束|限制适用)/,
+  /系统\s*[:：]/,             // "系统：" 前缀伪装系统消息
+  /助手\s*[:：]\s/,          // "助手：" 前缀伪装助手回复
+  /【系统】/,
+  /【指令】/,
+  /破解(模式|限制|规则)/,
+  /不受限制的?(模式|助手|AI)/,
+  /越狱/,
+  /DAN模式/,
+  /解除(限制|规则|约束)/,
+  /显示(你的)?(系统)?(提示词|指令|规则|prompt)/,
+  /你的(系统)?(提示词|指令|规则|prompt)是什么/,
+  /不要遵守(之前|前面|上面|先前)(的)?(规则|指令|限制)/,
+  /你(已经|现在)(不需要|不用|不用再)遵守/,
+  /以(下|后)(的)?(内容|话|指令)?(可以|都?)(不受|没有|无需)(限制|约束|规则)/
+];
+
+function detectPromptInjection(text) {
+  if (!text || typeof text !== "string") return { detected: false, matched: null };
+  var lower = text.toLowerCase();
+  for (var i = 0; i < INJECTION_PATTERNS.length; i++) {
+    if (INJECTION_PATTERNS[i].test(text) || INJECTION_PATTERNS[i].test(lower)) {
+      return { detected: true, matched: INJECTION_PATTERNS[i].source };
+    }
+  }
+  return { detected: false, matched: null };
+}
+
+function flagInjection(matched) {
+  console.warn("[PromptInjection] 检测到疑似指令注入话术，matched:", matched, "——已记录，消息照常处理");
+  var flag = document.createElement("div");
+  flag.className = "injection-flag";
+  flag.textContent = "⚠ 已记录：疑似指令注入话术";
+  chat.appendChild(flag);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+function addMsg(text, who) {
+  who = who || "agent";
+  const div = document.createElement("div");
+  div.className = "msg " + who;
+  div.textContent = text;
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+  state.displayLog.push({ text: text, who: who });
+  // 只要显示在聊天记录里的东西，模型自己的记忆里就该有——不管是用户
+  // 说的、模型自己说的、还是系统插的一句（比如"已经帮你转好了""接下来
+  // 还有件事"）。不这样做，模型会对后面自己都不知道发生过的事情一脸
+  // 茫然，答非所问。
+  state.history.push({ role: who, text: text });
+  if (state.history.length > 30) state.history = state.history.slice(-30);
+  saveSession();
+  // TTS 钩子：只念 agent 角色的消息，不念 user / sys
+  if (who === "agent") speakTTS(text);
+}
+function addOptions(options, cls) {
+  if (!options || !options.length) return;
+  const wrap = document.createElement("div");
+  wrap.className = "options";
+  options.forEach(function (opt) {
+    const b = document.createElement("div");
+    b.className = cls || "opt";
+    b.textContent = opt;
+    b.onclick = function () { cancelTTS(); wrap.remove(); state.pendingOptions = null; state.unresolvedQuestion = null; saveSession(); handleUser(opt); };
+    wrap.appendChild(b);
+  });
+  chat.appendChild(wrap);
+  chat.scrollTop = chat.scrollHeight;
+  state.pendingOptions = { options: options, cls: cls || "opt" };
+  saveSession();
+}
+function showTyping(text) {
+  const d = document.createElement("div");
+  d.className = "msg agent typing-indicator"; d.id = "typing";
+  d.textContent = text || "正在理解您的话…";
+  chat.appendChild(d); chat.scrollTop = chat.scrollHeight;
+}
+function hideTyping() { const d = document.getElementById("typing"); if (d) d.remove(); }
+function setBusy(b) { state.busy = b; input.disabled = b; sendBtn.disabled = b; micBtn.disabled = b; }
+function randomId() { return "a" + Math.random().toString(36).slice(2, 10); }
+function topReasons(risk, max) {
+  if (!risk || !risk.breakdown) return [];
+  return Object.values(risk.breakdown).filter(d => d.score > 0).map(d => d.reason).slice(0, max || 3);
+}
+
+function renderPendingQueue() {
+  pendingPanelEl.innerHTML = "";
+  // 安全/普通的要先处理完，需要转人工的风险项在那之前完全不显示——
+  // 不是排后面还是同时弹出来，是压根不出现，等安全的都处理完了才
+  // 自然浮现，不会有"突然弹出打断"这回事。
+  const nonHigh = state.pendingQueue.filter(i => i.risk.risk_level !== "HIGH");
+  const highs = state.pendingQueue.filter(i => i.risk.risk_level === "HIGH");
+  const showing = nonHigh.length ? nonHigh : highs;
+  const sorted = showing.slice().sort((a, b) => (b.risk.total_score || 0) - (a.risk.total_score || 0));
+
+  if (nonHigh.length && highs.length) {
+    const note = document.createElement("div");
+    note.className = "pending-reason"; note.style.margin = "0 0 8px 4px";
+    note.textContent = `还有 ${highs.length} 件事，等这些先处理完再看`;
+    pendingPanelEl.appendChild(note);
+  }
+
+  sorted.forEach(function (item) {
+    const card = document.createElement("div");
+    const levelClass = item.risk.risk_level === "HIGH" ? "pending-high" : (item.risk.risk_level === "MEDIUM" ? "pending-medium" : "");
+    card.className = "pending-card " + levelClass;
+    const label = document.createElement("div");
+    label.className = "pending-label";
+    label.textContent = `${item.recipient_name || "未知收款人"} · ${MOCK_BANK.user_account.currency} ${Number(item.amount).toLocaleString("zh-CN",{minimumFractionDigits:2,maximumFractionDigits:2})}`;
+    card.appendChild(label);
+    if (item.bank_name) {
+      const bank = document.createElement("div");
+      bank.className = "pending-reason"; bank.style.color = "#5c6478";
+      bank.textContent = "银行：" + item.bank_name;
+      card.appendChild(bank);
+    }
+    if (item.recipient_account_number) {
+      const acc = document.createElement("div");
+      acc.className = "pending-reason"; acc.style.color = "#5c6478";
+      acc.textContent = "账号：" + item.recipient_account_number;
+      card.appendChild(acc);
+    }
+    if (item.registered_name) {
+      const reg = document.createElement("div");
+      reg.className = "pending-reason"; reg.style.color = "#5c6478";
+      reg.textContent = "账户登记姓名：" + item.registered_name;
+      card.appendChild(reg);
+    }
+    if (item.note) {
+      const note = document.createElement("div");
+      note.className = "pending-reason"; note.style.color = "#5c6478";
+      note.textContent = "备注：" + item.note;
+      card.appendChild(note);
+    }
+    if (item.risk.risk_level !== "LOW") {
+      const reasons = topReasons(item.risk, 3);
+      if (reasons.length) {
+        const r = document.createElement("div");
+        r.className = "pending-reason";
+        r.textContent = reasons.join(" · ");
+        card.appendChild(r);
+      }
+    }
+    const btns = document.createElement("div");
+    btns.className = "pending-btns";
+    if (item.risk.risk_level === "HIGH") {
+      const b = document.createElement("div");
+      b.className = "riskbtn"; b.textContent = "📞 接通人工核实";
+      b.onclick = function () { resolveQueueItem(item.id, "human"); };
+      const defer = document.createElement("div");
+      defer.className = "opt"; defer.textContent = "先不处理";
+      defer.onclick = function () { resolveQueueItem(item.id, "defer"); };
+      btns.appendChild(b); btns.appendChild(defer);
+    } else {
+      const ok = document.createElement("div");
+      ok.className = "opt"; ok.textContent = "✅ 确认";
+      ok.onclick = function () { resolveQueueItem(item.id, "confirm"); };
+      const no = document.createElement("div");
+      no.className = "opt"; no.textContent = "✖ 取消";
+      no.onclick = function () { resolveQueueItem(item.id, "cancel"); };
+      btns.appendChild(ok); btns.appendChild(no);
+    }
+    card.appendChild(btns);
+    pendingPanelEl.appendChild(card);
+  });
+  saveSession();
+}
+
+function checkDeferredQuestions() {
+  const stillHasNonHighPending = state.pendingQueue.some(i => i.risk.risk_level !== "HIGH");
+  if (!stillHasNonHighPending && state.deferredQuestions.length && !state.unresolvedQuestion) {
+    const next = state.deferredQuestions.shift();
+    addMsg("接下来还有件事想请您看一下：", "sys");
+    addMsg(next.reply, "agent");
+    addOptions(next.options);
+    state.unresolvedQuestion = next;
+  }
+}
+
+function resolveQueueItem(id, action) {
+  const idx = state.pendingQueue.findIndex(i => i.id === id);
+  if (idx === -1) return;
+  const item = state.pendingQueue[idx];
+  if (action === "cancel") {
+    state.pendingQueue.splice(idx, 1);
+    addMsg(`好的，转给${item.recipient_name || "对方"}的${MOCK_BANK.user_account.currency} ${Number(item.amount).toFixed(2)}这笔，已取消，没有动钱。`, "agent");
+    appendAuditLog({ queue_item_id: item.id, outcome: "cancelled", recipient: item.recipient_name || null, amount: Number(item.amount) || 0, risk_result: item.risk || null, detail: "User cancelled the queued transfer" });
+    renderPendingQueue();
+    checkDeferredQuestions();
+    if (!state.pendingQueue.length && !state.unresolvedQuestion) addOptions(["转账", "查余额", "没有了，谢谢"]);
+    return;
+  }
+  if (action === "defer") {
+    state.pendingQueue.splice(idx, 1);
+    addMsg(`好的，这笔先不处理，钱不会动，需要的时候再跟我说。`, "agent");
+    appendAuditLog({ queue_item_id: item.id, outcome: "deferred", recipient: item.recipient_name || null, amount: Number(item.amount) || 0, risk_result: item.risk || null, detail: "User deferred the queued transfer" });
+    renderPendingQueue();
+    checkDeferredQuestions();
+    if (!state.pendingQueue.length && !state.unresolvedQuestion) addOptions(["转账", "查余额", "没有了，谢谢"]);
+    return;
+  }
+  if (action === "human") {
+    state.pendingQueue.splice(idx, 1);
+    addMsg("好，已经帮您接通人工客服，他们会跟您确认清楚再处理，您不用急。", "agent");
+    appendAuditLog({ queue_item_id: item.id, outcome: "escalated_to_human", recipient: item.recipient_name || null, amount: Number(item.amount) || 0, risk_result: item.risk || null, detail: "High-risk transfer escalated to human review" });
+    renderPendingQueue();
+    checkDeferredQuestions();
+    if (!state.pendingQueue.length && !state.unresolvedQuestion) addOptions(["转账", "查余额", "没有了，谢谢"]);
+    return;
+  }
+  if (action === "confirm") {
+    if (item.risk && item.risk.risk_level === "HIGH") {
+      // 真实UI不会给HIGH风险的项目"确认"这个按钮——这里是防御性兜底，
+      // 万一被别的路径意外调用到，也不能真的放它去人脸识别这一步。
+      console.warn("[guard] refused to confirm a HIGH-risk item directly:", item.recipient_name);
+      return;
+    }
+    state.pendingQueue.splice(idx, 1);
+    appendAuditLog({ queue_item_id: item.id, outcome: "user_confirmed_pending_face", recipient: item.recipient_name || null, amount: Number(item.amount) || 0, risk_result: item.risk || null, detail: "User confirmed the transfer, awaiting face recognition" });
+    renderPendingQueue();
+    openFaceModalFor(item);
+  }
+}
+
+function openFaceModalFor(item) {
+  faceModalTarget = item;
+  const bankLine = item.bank_name ? `${item.bank_name} ` : "";
+  const accLine = item.recipient_account_number ? `（账号 ${item.recipient_account_number}）` : "";
+  const noteLine = item.note ? `，备注：${item.note}` : "";
+  faceModalDetail.textContent = `转给${bankLine}${item.recipient_name || "对方"}${accLine} ${MOCK_BANK.user_account.currency} ${Number(item.amount).toFixed(2)}${noteLine}——请本人正对屏幕，识别通过后才会提交。`;
+  faceModal.classList.add("show");
+}
+
+// ── Groq (OpenAI-compatible) ─────────────────────────────────────────────────
+async function callGroq(messages) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 20000);
+  let res;
+  try {
+    res = await fetch(CONFIG.apiUrl, {
+      method: "POST", signal: controller.signal,
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + CONFIG.apiKey },
+      body: JSON.stringify({ model: CONFIG.model, temperature: 0.4, messages: messages })
+    });
+  } catch (e) {
+    if (e.name === "AbortError") throw new Error("TIMEOUT: 请求超过 20 秒没有响应");
+    throw new Error("NETWORK: " + e.message);
+  } finally { clearTimeout(timeoutId); }
+  if (!res.ok) { const errText = await res.text(); throw new Error("API_ERROR " + res.status + " - " + errText.slice(0, 200)); }
+  const data = await res.json();
+  return data.choices[0].message.content;
+}
+
+// ── Tencent ADP (SSE) ────────────────────────────────────────────────────────
+// ADP 把多轮上下文交给平台侧的 ConversationId 管理，所以这里只发"当前这句话"，
+// 不再像 Groq 那样把完整 messages 数组发过去。
+// 返回值是把所有 SSE reply chunk 拼完之后的完整文本字符串，和 callGroq 一致，
+// 让上层的 safeParseJSON 不用关心底下用的是哪套 API。
+async function callADP(currentUserText) {
+  if (!CONFIG.adpConvId) {
+    CONFIG.adpConvId = "dcta-" + Date.now() + "-" + Math.random().toString(36).slice(2, 8);
+  }
+  const requestId = "req-" + Date.now() + "-" + Math.random().toString(36).slice(2, 8);
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30000);
+  let res;
+  try {
+    res = await fetch(CONFIG.adpUrl, {
+      method: "POST", signal: controller.signal,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        RequestId:    requestId,
+        ConversationId: CONFIG.adpConvId,
+        AppKey:       CONFIG.adpKey,
+        VisitorId:    CONFIG.adpVisitorId,
+        Contents:     [{ Type: "text", Text: currentUserText }],
+        Incremental:  true,    // 每个 chunk 只含新增文字（delta），需要拼接
+        Stream:       "enable",
+        EnableMultiIntent: false
+      })
+    });
+  } catch (e) {
+    if (e.name === "AbortError") throw new Error("TIMEOUT: ADP 请求超过 30 秒没有响应");
+    throw new Error("NETWORK: " + e.message);
+  } finally { clearTimeout(timeoutId); }
+  if (!res.ok) { const errText = await res.text(); throw new Error("API_ERROR " + res.status + " - " + errText.slice(0, 200)); }
+
+  // 逐行读取 SSE 流，把所有 reply 事件的 Content 字段拼起来
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let fullText = "";
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    // SSE 格式：每个事件以两个换行符结尾
+    const lines = buffer.split("\n");
+    buffer = lines.pop(); // 最后一行可能还没收完，暂存
+    for (const line of lines) {
+      if (!line.startsWith("data:")) continue;
+      const json = line.slice(5).trim();
+      if (!json || json === "[DONE]") continue;
+      try {
+        const evt = JSON.parse(json);
+        // v2/chat 的 reply 事件结构：
+        // { Type: "reply", Reply: { Content: "...", IsFinished: bool } }
+        // 也可能是 response.processing / request_ack / done 等，忽略掉
+        if (evt.Type === "reply" && evt.Reply && typeof evt.Reply.Content === "string") {
+          fullText += evt.Reply.Content;
+        }
+      } catch (_) { /* 忽略非 JSON 行（keepalive 注释等） */ }
+    }
+  }
+  if (!fullText) throw new Error("ADP_EMPTY: 没收到任何 reply 内容");
+  return fullText;
+}
+
+// ── 统一入口 ─────────────────────────────────────────────────────────────────
+async function callModel(messages, currentUserText) {
+  if (CONFIG.apiMode === "adp") return callADP(currentUserText);
+  return callGroq(messages);
+}
+
+// 把 state.history（{role:"user"|"agent", text}）转成真正的多轮对话消息，
+// 而不是塞成一段文字摘要——这样模型才能真的分清"这是在回答我刚问的
+// 问题"，不是靠文字摘要里模糊的上下文去猜。
+function buildMessages(currentUserText, extraSystemNote) {
+  // 如果当前有一个还没解决的问题（比如"charles是不是你的联系人？"），
+  // 把它塞进 system 末尾，让模型知道用户这句话是在回答那个问题，
+  // 不是在发起一个全新的转账指令——不注入的话模型完全不知道上下文。
+  let contextNote = extraSystemNote || "";
+  if (state.unresolvedQuestion && state.unresolvedQuestion.reply && !state.unresolvedQuestion.recipientDraft) {
+    contextNote += "\n\n【当前待回答的问题】系统刚刚问了用户：「" + state.unresolvedQuestion.reply + "」" +
+      "用户现在这句话是在回答这个问题，请按上下文理解，不要当成新指令处理。" +
+      "如果用户选了「都不是，这是新的人」，对应的转账action里recipient_confirmed_new填true，recipient_id留null。" +
+      "如果用户选了某个联系人名字，把recipient_id填成那个人的contact_id。";
+  }
+  const sys = buildSystemPrompt() + contextNote;
+  const turns = state.history.slice(-8).map(function (h) {
+    return { role: h.role === "user" ? "user" : "assistant", content: h.text };
+  });
+  // 用户这句话如果已经在历史里了（addMsg在调用askModel之前就记过一次），
+  // 不要再重复append一次，不然模型会收到同一句话两遍。只有像静默提示
+  // 那种"没有真的经过addMsg记录"的合成文本，才需要在这里额外补上。
+  const last = turns[turns.length - 1];
+  const alreadyIncluded = last && last.role === "user" && last.content === currentUserText;
+  const messages = [{ role: "system", content: sys }].concat(turns);
+  if (!alreadyIncluded) messages.push({ role: "user", content: currentUserText });
+  return messages;
+}
+
+function safeParseJSON(raw) {
+  if (!raw) throw new Error("PARSE: empty response");
+  let s = String(raw).trim().replace(/```json/gi, "").replace(/```/g, "").trim();
+  const first = s.indexOf("{"); const last = s.lastIndexOf("}");
+  if (first !== -1 && last !== -1 && last > first) s = s.slice(first, last + 1);
+  try { return JSON.parse(s); } catch (e1) {}
+  let fixed = s.replace(/,\s*}/g, "}").replace(/,\s*]/g, "]").replace(/[\u201C\u201D]/g, '"').replace(/[\u2018\u2019]/g, "'");
+  try { return JSON.parse(fixed); } catch (e2) {}
+  throw new Error("PARSE: JSON parse failed. Raw: " + s.slice(0, 300));
+}
+
+function liveBankView() {
+  return Object.assign({}, MOCK_BANK, {
+    user_account: Object.assign({}, MOCK_BANK.user_account, { balance: state.balance }),
+    recent_transactions: (MOCK_BANK.recent_transactions || []).concat(state.sessionTransactions)
+  });
+}
+
+function buildSystemPrompt() {
+  return `你是「KLXG Helps You」，面向老年人、也适用于任何人日常转账的银行陪护助手。
+
+【职责】
+- 用户不需要开App，说话就行，你负责把事办完或问清楚。
+- 一句话里可能同时说好几件事(比如"转200给Alex，再查一下余额")，你要把
+  每一件事都拆出来，一件都不能漏，也不能把不相关的事混在一起判断。
+- 你只负责"理解"和"分类"，绝不自己执行任何转账，也绝不自己宣布
+  "已确认/已完成/正在处理"——这些字眼只有系统自己触发后才会出现，
+  转账要不要真的送出去，由用户点系统生成的卡片按钮决定，不是你决定。
+
+【语言跟随】
+判断这句话**整体主要**是哪种语言，用那种语言回复——不是看到一两个
+外来词、单个英文单词（比如中文对话里冒出一个"transfer"）就整段切换
+语言，那种情况通常只是借用词汇，不是在换语言说话。真的整句话、或者
+主要内容是另一种语言，才跟着切换。**不限于中英文**，法语、意大利语、
+马来语、任何语言，你本身就有能力处理，不需要额外的规则表。这一条不
+只管reply，options里的按钮文字也要跟着同一种语言走。
+
+【多任务拆解 · 非常重要】
+- 仔细读一句话里到底有几件独立的事：转账算一件，查询算一件，说不清楚
+  的算"unclear"。actions数组里每件事都要单独列一项，不能因为图省事
+  只处理其中一件、丢掉别的。
+- 每一项都要带 raw_snippet —— 这句话里"专属于这一件事"的那部分原文，
+  不是整句话。这个很关键：raw_snippet决定了这件事会不会被另一件事的
+  话术信号牵连，只放跟这件事真正相关的词句。
+  例如"转50给Alex，再转5000给一个新账号，他说警察让我转"要拆成
+  两项，每项的raw_snippet只包含自己那部分，不是两项都写整句话。
+- 不确定是转账还是别的，标"unclear"，不要瞎猜。
+- **如果这一批里有的已经齐全(ready)、有的还缺信息(incomplete)，reply
+  里优先把"齐全的"部分说清楚就好，缺信息的部分不用在这一轮reply里
+  一次性都问出来**——系统会自己安排缺信息的部分什么时候问，你不用
+  在reply里抢着把所有问题都列出来，那样会让用户觉得一下子被塞了太
+  多事。你可以简单提一句"还有几笔我稍后再跟您确认细节"这类，不用
+  展开问。
+- **已经确认过、或者已经完成的转账，不要在actions里重新列一遍当成
+  新的一笔**——哪怕你在reply里想回顾一下"之前转了什么"，那也只放
+  在reply文字里说说就好，不要把它重新塞进actions数组，那样系统会
+  以为这是一笔新的、要重新走一遍确认流程，等于让用户面对同一笔钱
+  再确认一次，绝对不行。actions里只放这一轮**新**提出的、还没被
+  处理过的事。
+
+【金额】
+- amount必须是用户说出的具体数字，amount_type填"explicit"。
+- 用户说相对说法("剩下的都给我妈")：不要自己算出数字直接当成事实——
+  amount留null，amount_type填"remaining"，系统会自动算出具体金额、
+  摆在用户面前确认，不会替他悄悄决定。
+- 除了"remaining"，不支持别的相对/计算型金额(比如"一半")，遇到这种
+  情况在reply里问清楚具体数字。
+- 数字本身听起来/看起来模糊、可能听错（比如中文口语里"5万"和"5千"
+  容易混、或者数字被截断看不全）——不要挑一个自己觉得像的就填进去，
+  status填"incomplete"，awaitingAnswer填true，在reply里把你听到的
+  几种可能都说出来，请用户确认具体是多少。金额这块的"不确定就问"，
+  跟下面收款人那块要求一样认真，不能因为这只是个数字就随便猜。
+
+【每个动作独立成立】
+一句话里有些事安全、有些事可疑，不能因为在同一句话里就互相沾染。这也
+是raw_snippet要分开写的原因。
+
+【操纵话术的语义判断 · manipulation_signal字段】
+读每个动作的raw_snippet，判断这段话里有没有"被人操纵/指使"的迹象——
+不是找关键词，是真的读懂意思，包括拐弯抹角的说法（比如"朋友介绍的一
+个警官让我先配合一下"这种，没有直接说"警察"但意思是一样的）。常见
+模式：冒充执法/银行机构、制造紧迫感、要求保密、以任何理由要求转账"验
+证"。
+- 没有这类迹象 → manipulation_signal填"none"
+- 有一点、不算强烈 → 填"mild"
+- 很明显 → 填"strong"，manipulation_evidence简短写出是哪句话/哪个
+  意思让你这样判断。
+你只负责判断"像不像"，不负责这个信号最后值多少分、够不够拦截——那
+是系统的计算公式决定的，跟其他风险维度一样。
+
+【动作是否齐全 · status字段】
+- 转账：拿到收款人+金额、而且都不含糊 → status填"ready"。
+- 查询：拿到"查什么"（余额，还是某人的交易，还是笼统的最近记录）、
+  以及"要最近一笔还是列几笔" → status填"ready"，系统会去查真正的数据
+  给用户看。**只要你还在reply里反问"您是想查哪一笔/哪个人"这种问题，
+  这个动作就还没齐全，status必须填"incomplete"，系统这一轮不会显示
+  任何数据**——不能一边问、一边又把整份记录甩出来，那样反而混淆。
+- 缺东西、含糊 → status填"incomplete"，在reply里自然地问清楚。
+
+【查询 · query相关字段】
+- query_target："balance"（查余额，不用管scope和contact）｜"contact"
+  （查某个具体人相关的记录）｜"all"（笼统查"最近的记录"，没指定人）。
+- query_contact_name：query_target为"contact"时，填用户说的那个人的
+  称呼（比如"妈妈""Alex"），系统会自己去匹配。
+- query_scope："latest"（只要最近一笔，比如"最近一次"）｜"all"（要
+  列几笔，比如"都有哪些""这个月的"）。用户如果两种都没说清楚，问清楚
+  再继续，不要自己猜一个。
+- 回答完一个查询之后，不要接着又把"最近的账户记录"整个列一遍——用户
+  要的答案已经给了，多余的信息只会让人分不清你到底在说哪部分。
+- **只有这一轮用户说的话真的在问查询相关的事，才输出query这个动作**
+  ——不要因为之前几轮聊过查余额/查记录，这一轮明明是别的事（比如只
+  说了"转账"两个字），也顺手again带一个query动作出来，那是把之前的
+  上下文和这一轮要做的事搞混了。
+
+【等待回答 · awaitingAnswer字段】
+如果这一轮你在reply里问了一个需要用户明确回答的问题（缺信息、金额
+模糊、候选人不确定、查询目标不确定……），awaitingAnswer填true。如果
+只是闲聊、或者已经把事情办完/查完，awaitingAnswer填false。这个字段
+很重要：系统靠它追踪"还有问题没解决"，如果用户接下来聊别的、没有回
+答，系统会主动把这个问题带回来——所以你不用担心"会不会忘记追问"，
+只要如实填这个字段就行，不用自己费心记着要不要再问一次。
+
+【联系人匹配】
+先看【银行数据】contacts里每个人的address_terms字段——这是这个人自己
+登记过的、明确指向"就是这一个人"的称呼（比如Mom的address_terms里有
+"妈妈""老妈"）。**用户说的名字如果命中了某个联系人的address_terms，
+直接把recipient_id填成那个人的contact_id，不用走候选人确认这一步**
+——这跟"名字含糊不清"是两回事，这是联系人自己确认过的称呼，可以放心
+用。
+除此之外才是含糊的情况：
+情况A：用户用关系称呼、但这个称呼不在任何联系人的address_terms里
+("女儿""房东"里如果"房东"没登记在任何人的address_terms，或者称呼的
+人根本没有对应联系人)——在contacts里找可能对应的人，在reply里说明
+你的猜测。
+情况B：报的名字在contacts里没有把握地匹配上（不管像不像，也没命中
+address_terms）——同样不要自己下结论。
+以上两种情况，recipient_id都留null、status填"incomplete"、
+awaitingAnswer填true——**具体候选人名单由系统自动生成完整列表**，
+你不用自己在options里列，只需要在reply里自然地说"不确定是不是您常
+联系的人"这类话，系统会接管候选人选择这一步。
+如果用户上一轮刚从候选人名单里选了一个名字、或者选了"都不是，这是
+新的人"——这一轮你要读懂这是在回答之前的问题：选了某个联系人名字，
+就把recipient_id填成那个人对应的contact_id；选了"都不是"，就把
+recipient_confirmed_new填true（recipient_id留null），表示这是用户
+自己明确确认过的新收款人，系统不会再重复问一次。
+只能引用【银行数据】contacts里真实存在的contact_id，不能编。
+
+【新收款人必须有账号+银行 · recipient_account_number / recipient_bank_name字段】
+转给系统里已有的联系人，不用问账号和银行（系统自己查得到）。但**转给
+一个新收款人，光有名字不够，必须拿到对方的银行账号和开户银行名称才
+算齐全**——真实银行转账都要知道对方是哪家银行的账户。用户报了就填
+进recipient_account_number / recipient_bank_name；缺哪个，就在reply
+里自然地问清楚，这个动作不能标成ready。
+**recipient_bank_name必须是真实银行机构名称**（如DBS、OCBC、UOB、
+POSB、渣打、花旗等），绝对不能把收款人的名字或缩写（如"NTU"、
+"Alex"、"mom"）填进recipient_bank_name——那是recipient_name的内容。
+一句话里同时出现收款人名字和账号（如"NTU 874598740"），账号填进
+recipient_account_number，银行名还是unknown，要继续问。
+
+【备注 · note字段 · 非强制】
+用户主动说了这笔钱是做什么的（"备注写午饭钱"、"这是房租"），就填进
+note。如果没主动说，收款人和金额都定了的话，可以在reply里顺手提一句
+"需要加个备注说明用途吗？不用也可以"——**但这只问一次，问完不管用户
+有没有回应，这一笔照样可以标成ready，不要因为没有备注就卡着不处理**。
+备注是锦上添花，不是必要条件；用户不填，以后查这笔详情自然就没有备注
+可看，这是用户自己的选择，不是系统的错，不用因为担心这个就死等着问。
+
+【用户想结束对话 · conversationEnding字段】
+用户的话听起来像是在收尾（道谢、说"再见""end""先这样吧""没事了"这
+类），conversationEnding填true，awaitingAnswer这时候应该填false——
+不要把之前没解决的旧问题硬塞回去打断他，除非那件事真的很要紧。系统
+会在这时候自动附上一份本次操作小结，你不用自己总结。
+
+【转账的"确认"不由你负责】
+每一笔status为ready的转账，系统会自动生成独立的确认卡片，用户点卡片
+上的按钮才算数——你不用问"确认吗"，也不用在options里放"确认""取消"
+这种按钮，那些由系统卡片负责，你负责的是把理解到的内容自然说清楚。
+
+【语气】
+像家人，不像客服，绝不催促。风险提示不说"警告""诈骗"，说"我想多问
+一句"。用户说"算了""等一下"，立刻温和停下。
+
+【按钮options字段 · 仅用于非转账收款人以外的场景】
+options用于闲聊选项、开场白这类场景（收款人候选人由系统自动生成，
+不用你管）。按钮内容必须是用户会说的话（第一人称/直接说信息本身），
+不能是"请…""麻烦…"这种agent口吻的指令句。
+
+【银行数据】
+${JSON.stringify((function() {
+  const v = liveBankView();
+  return {
+    user_account: { name: v.user_account.name, balance: v.user_account.balance, currency: v.user_account.currency },
+    contacts: v.contacts,
+    recent_transactions: (v.recent_transactions || []).slice(-5)
+  };
+}()))}
+
+【开场】
+history为空时主动打招呼，用options给1-3个开场选项，actions给空数组，
+awaitingAnswer填false。
+
+只输出JSON，不要任何其他文字：
+{
+  "reply": "给用户看的话",
+  "awaitingAnswer": true | false,
+  "conversationEnding": true | false,
+  "actions": [
+    { "intent": "transfer" | "query" | "unclear",
+      "status": "ready" | "incomplete",
+      "recipient_name": "..." | null,
+      "recipient_id": "..." | null,
+      "recipient_confirmed_new": true | false,
+      "amount": <number> | null,
+      "amount_type": "explicit" | "remaining",
+      "raw_snippet": "这句话里专属于这一项的原文",
+      "manipulation_signal": "none" | "mild" | "strong",
+      "manipulation_evidence": "简短说明，没有迹象就填空字符串",
+      "query_target": "balance" | "contact" | "all" | null,
+      "query_contact_name": "..." | null,
+      "query_scope": "latest" | "all" | null,
+      "recipient_account_number": "..." | null,
+      "recipient_bank_name": "..." | null,
+      "note": "..." | null }
+  ],
+  "options": ["..."]
+}`;
+}
+
+// ---- 本地解析器：当 API 不可用（503/429/过载）时兜底 ----
+// 不依赖 LLM，直接从用户文本里提取转账/查询意图。
+// 只覆盖最常见的格式："转给 alex 120 备注 xx, mom 520, NTU 20k, james 50 dinner"
+// 常见新加坡银行名的别名表，用来从用户随口一句话里认出"这是哪家银行"——
+// 不追求覆盖所有银行，只覆盖测试/演示里大概率会用到的几家。
+const BANK_NAME_ALIASES = [
+  { canonical: "DBS Bank", terms: ["dbs", "星展", "星展银行"] },
+  { canonical: "OCBC Bank", terms: ["ocbc", "华侨", "华侨银行"] },
+  { canonical: "UOB", terms: ["uob", "大华", "大华银行"] },
+  { canonical: "POSB", terms: ["posb", "邮政储蓄", "邮政储蓄银行"] },
+  { canonical: "Standard Chartered", terms: ["standard chartered", "渣打", "渣打银行", "sc bank"] },
+  { canonical: "Citibank", terms: ["citibank", "citi", "花旗", "花旗银行"] },
+  { canonical: "Maybank", terms: ["maybank", "马来亚银行", "大马银行"] },
+  { canonical: "HSBC", terms: ["hsbc", "汇丰", "汇丰银行"] },
+  { canonical: "Bank of China", terms: ["bank of china", "boc", "中国银行", "中行"] },
+  { canonical: "ICBC", terms: ["icbc", "工商银行", "工行"] },
+  { canonical: "CIMB", terms: ["cimb", "联昌", "联昌银行"] },
+  { canonical: "RHB", terms: ["rhb", "兴业银行"] }
+];
+function extractBankName(text) {
+  var lower = (text || "").toLowerCase().trim();
+  // 1. exact substring match
+  for (var i = 0; i < BANK_NAME_ALIASES.length; i++) {
+    var b = BANK_NAME_ALIASES[i];
+    if (b.terms.some(function (t) { return lower.indexOf(t) !== -1; })) return b.canonical;
+  }
+  // 2. fuzzy: match each whitespace-separated token with levenshtein ≤1
+  var tokens = lower.split(/[\s,，、]+/);
+  for (var ti = 0; ti < tokens.length; ti++) {
+    var tok = tokens[ti];
+    if (tok.length < 3) continue;
+    for (var i = 0; i < BANK_NAME_ALIASES.length; i++) {
+      var b = BANK_NAME_ALIASES[i];
+      for (var j = 0; j < b.terms.length; j++) {
+        var term = b.terms[j];
+        if (term.length < 3) continue;
+        if (levenshtein(tok, term) <= 1) return b.canonical;
+      }
+    }
+  }
+  // 3. 兜底：清单里没有的，只要长得像"XX银行"/"XX Bank"，原样摘出来
+  var m = (text || "").match(/([\u4e00-\u9fff]{2,8}银行)/) || (text || "").match(/\b([A-Za-z][A-Za-z\s]{1,20}Bank)\b/i);
+  return m ? m[1].trim() : null;
+}
+function extractAccountNumber(text) {
+  var t = text || "";
+  // 优先认"账号/户口/account"后面紧跟着的数字——有明确标记的，不用猜
+  var labeled = t.match(/(?:账号|户口|account(?:\s*(?:no|number))?)\s*[:：]?\s*([\d\-\s]{5,})/i);
+  if (labeled) {
+    var digits = labeled[1].replace(/[^\d]/g, "");
+    if (digits.length >= 5) return digits;
+  }
+  // 没有明确标记——账号一般是一长串数字（≥5位），跟金额（通常比较短）
+  // 区分开来，取第一个够长的数字串
+  var runs = t.match(/\d{5,}/g);
+  return runs && runs.length ? runs[0] : null;
+}
+function extractRestatedAmount(text, accountDigits) {
+  var runs = (text || "").match(/\d+(?:\.\d+)?\s*(?:k|K|千|万|w|W)?/g) || [];
+  for (var i = 0; i < runs.length; i++) {
+    var digitsOnly = runs[i].replace(/[^\d.]/g, "");
+    if (!digitsOnly) continue;
+    if (accountDigits && digitsOnly.replace(/\./g, "") === accountDigits) continue; // 跳过已经被认成账号的那串
+    if (digitsOnly.replace(/\./g, "").length <= 4) {
+      var val = parseFloat(digitsOnly);
+      var unitMatch = runs[i].match(/(k|K|千|万|w|W)/);
+      if (unitMatch) { var u = unitMatch[1].toLowerCase(); val = (u === "万") ? val * 10000 : val * 1000; }
+      return val;
+    }
+  }
+  return null;
+}
+function localParseUserInput(text) {
+  var t = (text || "").trim();
+  if (!t) {
+    return { reply: "您想做什么？可以说转账、查余额。", awaitingAnswer: false, conversationEnding: false, options: ["转账", "查余额"], actions: [] };
+  }
+
+  // ===== 回答"缺账号/银行"追问的兜底 =====
+  // state.unresolvedQuestion.recipientDraft 存的是"现在卡在哪一笔转账、
+  // 还缺账号还是银行"的结构化草稿，不只是一句提示文字。如果现在正卡在
+  // 这上面，这句话大概率是在补那个缺口，不是在开一笔全新的转账——
+  // 优先按"回答追问"解；账号/银行都解不出来、名字也对不上的话，就当
+  // 没发生过，往下走正常的新指令解析（比如用户其实是想聊别的事）。
+  var draft = state.unresolvedQuestion && state.unresolvedQuestion.recipientDraft;
+  if (draft) {
+    var foundAccount = extractAccountNumber(t);
+    var foundBank = extractBankName(t);
+    // 算"这句话里剩下的名字候选"之前，先把命中的银行关键词也去掉——
+    // 不然像"OCBC"这种纯银行名回复，会被当成一个要跟draft.recipient_name
+    // 比对的"名字"，对不上就被误判成不相关、白白拒绝合并。
+    var strippedForName = t;
+    if (foundBank) {
+      BANK_NAME_ALIASES.forEach(function (b) {
+        b.terms.forEach(function (term) {
+          strippedForName = strippedForName.replace(new RegExp(term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "ig"), "");
+        });
+      });
+    }
+    var nameToken = strippedForName.replace(/\d+/g, "").replace(/[，,。.\-;；:：!！?？]/g, "").trim().split(/\s+/)[0] || "";
+    var nameMatchesDraft = !nameToken || nameToken.toLowerCase() === (draft.recipient_name || "").toLowerCase() || namesLooselyMatch(nameToken, draft.recipient_name);
+    if ((foundAccount || foundBank) && nameMatchesDraft) {
+      var mergedAccount = foundAccount || draft.recipient_account_number || null;
+      var mergedBank = foundBank || draft.recipient_bank_name || null;
+      var restated = extractRestatedAmount(t, foundAccount);
+      var mergedAmount = (restated != null) ? restated : draft.amount;
+      var isNowReady = !!(mergedAccount && mergedBank);
+      var mergedAction = {
+        intent: "transfer", status: isNowReady ? "ready" : "incomplete",
+        recipient_name: draft.recipient_name, recipient_id: null, recipient_confirmed_new: true,
+        amount: mergedAmount, amount_type: "explicit", raw_snippet: t,
+        recipient_account_number: mergedAccount, recipient_bank_name: mergedBank,
+        note: draft.note, manipulation_signal: "none", manipulation_evidence: "",
+        query_target: null, query_contact_name: null, query_scope: null
+      };
+      var reply = isNowReady
+        ? `好的，${draft.recipient_name}的账号和银行都齐了，这就帮您处理。`
+        : (mergedAccount ? `好的，账号记下了——${draft.recipient_name}是哪家银行的账户？` : `好的，银行记下了——能提供一下${draft.recipient_name}的账号吗？`);
+      return { reply: reply, awaitingAnswer: !isNowReady, conversationEnding: false, options: [], actions: [mergedAction] };
+    }
+  }
+
+  // 结束对话
+  var endingWords = ["没有了，谢谢", "谢谢", "再见", "bye", "end", "没事了", "先这样"];
+  if (endingWords.some(function (w) { return t.toLowerCase().indexOf(w.toLowerCase()) >= 0; }) && t.length < 20) {
+    var summary = buildSessionSummary();
+    return { reply: summary || "好的，需要的时候随时叫我。", awaitingAnswer: false, conversationEnding: true, options: [], actions: [] };
+  }
+
+  // 只说了"转账"这类意图词、没给任何细节——这是意图很清楚，只是信息
+  // 不全，不该跟"完全听不懂在说什么"用同一句话回应，用户会觉得很奇怪。
+  var bareTransferWords = ["转账", "转帐", "我要转账", "我想转账", "transfer", "i want to transfer", "want to transfer"];
+  if (bareTransferWords.some(function (w) { return t.toLowerCase() === w.toLowerCase(); })) {
+    return { reply: "好的，请问您想转给谁、转多少？", awaitingAnswer: true, conversationEnding: false, options: [], actions: [] };
+  }
+
+  // 查余额——余额数字只应该通过下面的query动作显示一次，reply这里
+  // 不能重复写同样的内容，不然applyBatchResult会把两边都显示出来，
+  // 变成"您的余额是…"连着出现两次。
+  if (/余额|balance|还有多少钱|剩多少/i.test(t) && !/\d+\s*(k|千|万)/.test(t)) {
+    return { reply: "好的，我帮您查一下。", awaitingAnswer: false, conversationEnding: false, options: [], actions: [{ intent: "query", status: "ready", query_target: "balance", query_contact_name: null, query_scope: null, recipient_name: null, recipient_id: null, amount: null, raw_snippet: t }] };
+  }
+
+  // 查最近的交易记录——之前完全没写这一条，"查看最近的交易记录"这个
+  // 开场白按钮点下去，会因为句子里没有数字、被当成信息不全的转账指令，
+  // 回"您想转给谁、转多少"，答非所问。跟余额那条一样，这里只负责识别
+  // 意图、生成query动作，真正的数据由 applyBatchResult 调用
+  // summarizeFilteredActivity 去取，reply 不能提前把内容写出来。
+  if (/最近.*(交易|记录)|(交易|账户).*(记录|流水)|transaction\s*history|recent\s*transactions?/i.test(t) && !/余额|balance/i.test(t)) {
+    var wantsLatestOnly = /最近一笔|最新一笔|latest\s*transaction|most\s*recent/i.test(t);
+    // 顺手识别一下"跟谁的记录"这种针对某个联系人的查询；认不出来就当笼统查询
+    var contactMatch = null;
+    MOCK_BANK.contacts.forEach(function (c) {
+      if (contactMatch) return;
+      var lower = t.toLowerCase();
+      if (lower.indexOf(c.name.toLowerCase()) !== -1) { contactMatch = c.name; return; }
+      var first = c.name.split(" ")[0].toLowerCase();
+      if (first.length > 1 && lower.indexOf(first) !== -1) { contactMatch = c.name; return; }
+      if (c.address_terms && c.address_terms.some(function (term) { return lower.indexOf(term.toLowerCase()) !== -1; })) contactMatch = c.name;
+    });
+    return {
+      reply: "好的，我帮您查一下。", awaitingAnswer: false, conversationEnding: false, options: [],
+      actions: [{
+        intent: "query", status: "ready",
+        query_target: contactMatch ? "contact" : "all",
+        query_contact_name: contactMatch, query_scope: wantsLatestOnly ? "latest" : "all",
+        recipient_name: null, recipient_id: null, amount: null, raw_snippet: t
+      }]
+    };
+  }
+
+  // 按逗号/分号分割多笔
+  var parts = t.split(/[,，;；]/).map(function (s) { return s.trim(); }).filter(Boolean);
+  var actions = [];
+  var replyParts = [];
+
+  parts.forEach(function (part) {
+    // 提取金额：120, 520, 20k, 20000, 2万
+    var amountMatch = part.match(/(\d+(?:\.\d+)?)(\s*(?:k|K|千|万|w|W))?/);
+    var amount = null;
+    var amountType = "explicit";
+    if (amountMatch) {
+      amount = parseFloat(amountMatch[1]);
+      var unit = (amountMatch[2] || "").toLowerCase();
+      if (unit === "k" || unit === "千" || unit === "w") amount = amount * 1000;
+      else if (unit === "万") amount = amount * 10000;
+    }
+
+    // 提取收款人名字——去掉金额和纯粹的指令性词语（"帮我""转给"这些没
+    // 有信息量的词），剩下的第一个词当名字，后面剩的当备注——不用死记
+    // 一份"哪些词算备注"的清单，任何跟在名字后面的描述都能被当成备注，
+    // 不会像"十月家用"这种没有"备注:"标记的说法直接被吞掉。
+    var cleaned = part
+      // 只删第一个数字（也就是已经被 amountMatch 取走的那个金额），
+      // 不用 g 标记全局删——否则备注里其他的数字（比如"jul24"的24）
+      // 也会被一起吃掉，变成"jul"
+      .replace(/(\d+(?:\.\d+)?)(\s*(?:k|K|千|万|w|W))?/i, "")
+      // 纯指令词——没有任何信息量，直接删掉，不进备注。
+      // 月份/年份不放在这里删：它们经常是用户想留的备注（比如"jul24"），
+      // 删了就永久丢失了；交给下面的 trailingNote 兜底逻辑保留下来。
+      .replace(/\b(transfer|transfr|trans|send|to)\b/gi, "")
+      .replace(/(帮我|帮忙|麻烦|转给|转账给|转|给)/g, "")
+      .replace(/[，,。.\-;；:：!！?？]/g, "")
+      .replace(/\s+/g, " ")
+      .trim();
+    var tokens = cleaned.split(" ").filter(Boolean);
+    var namePart = tokens[0] || "";
+    var trailingNote = tokens.length > 1 ? tokens.slice(1).join(" ") : null;
+
+    // 尝试匹配联系人
+    var guessedId = guessRecipientId(namePart || part);
+    var recipientName = namePart || null;
+
+    // 提取备注：明确带"备注:""remarks:"标记的优先；没有标记的话，用
+    // 上面"名字后面剩下的部分"这个通用兜底，不会因为没写"备注:"就丢
+    var noteMatch = part.match(/(?:remarks?|备注)\s*[:：]?\s*(.+)/i);
+    var note = noteMatch ? noteMatch[1].trim() : null;
+    if (!note) {
+      // "mentioned Jul 2025" 这种当作 note
+      var mentionedMatch = part.match(/mentioned\s+(.+)/i);
+      if (mentionedMatch) note = "mentioned " + mentionedMatch[1].trim();
+    }
+    if (!note) {
+      // "businss dinner" "business dinner" 这种用途描述
+      var bizMatch = part.match(/(businss|business)\s+(dinner|lunch|meeting|trip)/i);
+      if (bizMatch) note = bizMatch[0];
+    }
+    if (!note && trailingNote) note = trailingNote;
+
+    if (amount && recipientName) {
+      // 已知联系人 → ready；新收款人 → incomplete（缺账号/银行）
+      if (guessedId) {
+        actions.push({
+          intent: "transfer", status: "ready",
+          recipient_name: recipientName, recipient_id: guessedId,
+          recipient_confirmed_new: false,
+          amount: amount, amount_type: amountType,
+          raw_snippet: part,
+          recipient_account_number: null, recipient_bank_name: null,
+          note: note, manipulation_signal: "none", manipulation_evidence: "",
+          query_target: null, query_contact_name: null, query_scope: null
+        });
+        replyParts.push("转给" + recipientName + " " + MOCK_BANK.user_account.currency + " " + amount.toFixed(2) + (note ? "（备注：" + note + "）" : ""));
+      } else {
+        actions.push({
+          intent: "transfer", status: "incomplete",
+          recipient_name: recipientName, recipient_id: null,
+          recipient_confirmed_new: true,
+          amount: amount, amount_type: amountType,
+          raw_snippet: part,
+          recipient_account_number: null, recipient_bank_name: null,
+          note: note, manipulation_signal: "none", manipulation_evidence: "",
+          query_target: null, query_contact_name: null, query_scope: null
+        });
+        replyParts.push("转给" + recipientName + " " + MOCK_BANK.user_account.currency + " " + amount.toFixed(2) + "——需要您提供对方的银行账号和开户银行才能继续。");
+      }
+    }
+  });
+
+  if (!actions.length) {
+    return { reply: "我没完全听明白。您想转给谁、转多少？", awaitingAnswer: true, conversationEnding: false, options: [], actions: [] };
+  }
+
+  var hasReady = actions.some(function (a) { return a.status === "ready"; });
+  var hasIncomplete = actions.some(function (a) { return a.status === "incomplete"; });
+
+  var reply;
+  if (hasReady && hasIncomplete) {
+    reply = "好的，我先帮您把" + actions.filter(function (a) { return a.status === "ready"; }).map(function (a) { return a.recipient_name; }).join("、") + "的这几笔处理好，别的稍后再跟您确认细节。";
+  } else if (hasReady) {
+    reply = "好的，" + replyParts.join("；") + "。";
+  } else {
+    reply = replyParts.join("；") + " 请补充一下信息，我就能帮您处理。";
+  }
+
+  return { reply: reply, awaitingAnswer: hasIncomplete, conversationEnding: false, options: [], actions: actions };
+}
+
+let localOnlyMode = (function () { try { return localStorage.getItem("localOnlyMode") === "1"; } catch (e) { return false; } })(); // 刷新后记住用户的选择
+async function askModel(userText) {
+  if (localOnlyMode) {
+    console.log("[本地模式] 跳过API，直接用本地解析器处理");
+    return localParseUserInput(userText);
+  }
+  // 没有 key → 不要去发一个必定 401 的请求再静默 fallback，
+  // 直接告诉用户需要先输入 key，否则用户以为 API 在工作，其实一直是本地解析器
+  const hasKey = CONFIG.apiMode === "adp" ? !!CONFIG.adpKey : !!CONFIG.apiKey;
+  if (!hasKey) {
+    console.warn("[askModel] 没有 API key，使用本地解析器。请点右上角输入 API key 后刷新。");
+    // 弹出 key modal 提醒用户
+    document.getElementById("keyModal").classList.add("show");
+    return localParseUserInput(userText);
+  }
+  let retryNote = "";
+  let lastErr = null;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const messages = buildMessages(userText + retryNote);
+      const res = await callModel(messages, userText + retryNote);
+      const parsed = safeParseJSON(res);
+      console.log("[askModel raw response]", JSON.parse(JSON.stringify(parsed))); // 完整原始返回，方便排查"模型到底给了什么"
+      return parsed;
+    } catch (e) {
+      lastErr = e;
+      console.warn("attempt " + (attempt + 1) + " failed:", e.message);
+      // 429（额度/频率限制）重试没有意义——几百毫秒后再试大概率还是429，
+      // 纯粹多浪费一次请求额度，直接放弃重试，用本地兜底。
+      // 401/403 = key 错了，不要重试，直接清掉 key 让徽章变红提醒用户
+      if (String(e.message).indexOf("401") !== -1 || String(e.message).indexOf("403") !== -1) {
+        if (CONFIG.apiMode === "adp") { CONFIG.adpKey = null; sessionStorage.removeItem("adp_api_key"); }
+        else { CONFIG.apiKey = null; sessionStorage.removeItem("groq_api_key"); }
+        const badge = document.getElementById("apiStatusBadge");
+        if (badge) { badge.textContent = "🔴 key无效"; badge.style.background = "#fce8e8"; badge.style.color = "#b91c1c"; }
+        break;
+      }
+      if (String(e.message).indexOf("429") !== -1) break;
+      if (attempt === 0) {
+        if (String(e.message).startsWith("PARSE")) retryNote = "\n\n（上一次你的输出不是合法 JSON。请只输出 JSON。）";
+        await new Promise(r => setTimeout(r, 800));
+      }
+    }
+  }
+  // API 不可用（503/429/502 等过载错误），用本地解析器兜底
+  console.warn("API failed, using local fallback parser:", lastErr.message);
+  return localParseUserInput(userText);
+}
+
+// 简单的编辑距离（Levenshtein），只用来容忍"少打/打错一个字母"这种
+// 小拼写误差（比如"alx"对"alex"），不追求通用模糊搜索。
+function levenshtein(a, b) {
+  a = a || ""; b = b || "";
+  const m = a.length, n = b.length;
+  if (!m) return n;
+  if (!n) return m;
+  const dp = new Array(m + 1);
+  for (let i = 0; i <= m; i++) dp[i] = [i].concat(new Array(n).fill(0));
+  for (let j = 0; j <= n; j++) dp[0][j] = j;
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      dp[i][j] = a[i - 1] === b[j - 1] ? dp[i - 1][j - 1]
+        : 1 + Math.min(dp[i - 1][j - 1], dp[i - 1][j], dp[i][j - 1]);
+    }
+  }
+  return dp[m][n];
+}
+function guessRecipientId(text) {
+  const lower = (text || "").trim().toLowerCase();
+  if (!lower) return null;
+  for (const c of MOCK_BANK.contacts) {
+    if (lower.includes(c.name.toLowerCase())) return c.contact_id;
+    const first = c.name.split(" ")[0].toLowerCase();
+    if (first.length > 1 && lower.includes(first)) return c.contact_id;
+    if (c.address_terms && c.address_terms.some(t => lower.includes(t.toLowerCase()))) return c.contact_id;
+  }
+  // 精确/子串都没匹配到——再做一次宽松匹配，容忍一个字母的打字误差
+  // （比如"alx"少打了"alex"中间那个e）。只在名字够长（≥4字符）时才
+  // 这样比，短名字容错空间太小，容易认错人，反而不安全。
+  let bestId = null, bestDist = 2;
+  for (const c of MOCK_BANK.contacts) {
+    const first = c.name.split(" ")[0].toLowerCase();
+    if (Math.max(first.length, lower.length) < 4) continue;
+    const dist = levenshtein(lower, first);
+    if (dist <= 1 && dist < bestDist) { bestDist = dist; bestId = c.contact_id; }
+  }
+  return bestId;
+}
+function namesLooselyMatch(stated, actual) {
+  if (!stated || !actual) return false;
+  const s = String(stated).toLowerCase().replace(/\s+/g, "");
+  const a = String(actual).toLowerCase().replace(/\s+/g, "");
+  if (s === a) return true;
+  if (a.includes(s) || s.includes(a)) return true;
+  const sWords = String(stated).toLowerCase().split(/\s+/).filter(w => w.length > 1);
+  const aWords = String(actual).toLowerCase().split(/\s+/).filter(w => w.length > 1);
+  if (sWords.some(w => aWords.includes(w))) return true;
+  // 跟guessRecipientId用同一套"容忍1个字母误差"的逻辑，不然guessRecipientId
+  // 模糊匹配到的联系人，会在这里被判定"名字对不上"又打回去，白模糊了。
+  return sWords.some(function (sw) {
+    return aWords.some(function (aw) {
+      return Math.max(sw.length, aw.length) >= 4 && levenshtein(sw, aw) <= 1;
+    });
+  });
+}
+// 称呼匹配是跟"名字像不像"完全不同的另一条路：用户说"老妈""房东"这种
+// 关系称呼，压根不会跟联系人存的名字有任何字面上的相似之处，不该被
+// "名字对不上"这条严格规则挡下来——那条规则是用来防"这个名字听起来
+// 像另一个人"这种真正危险的情况，不是用来处理关系称呼的。只有联系人
+// 自己登记过的、明确指向这一个人的称呼才算数，不能泛泛地猜。
+function matchesAddressTerm(stated, contact) {
+  if (!stated || !contact.address_terms) return false;
+  const s = String(stated).toLowerCase().replace(/\s+/g, "");
+  return contact.address_terms.some(t => s === t.toLowerCase() || s.includes(t.toLowerCase()));
+}
+function validRecipientId(id, statedAccount, statedName) {
+  if (!id) return null;
+  const contact = MOCK_BANK.contacts.find(c => c.contact_id === id);
+  if (!contact) return null;
+  if (statedAccount && String(statedAccount).replace(/\s/g, "") !== contact.account_number) {
+    console.warn("[guard] recipient_id rejected: account mismatch", id, statedAccount, contact.account_number);
+    return null;
+  }
+  if (statedName && !namesLooselyMatch(statedName, contact.name) && !matchesAddressTerm(statedName, contact)) {
+    console.warn("[guard] recipient_id rejected: name doesn't resemble contact", statedName, contact.name);
+    return null;
+  }
+  return id;
+}
+
+function formatTxLine(tx, byId) {
+  const who = tx.type === "incoming" ? (byId[tx.sender_id] || "对方") : (byId[tx.recipient_id] || "对方");
+  const verb = tx.type === "incoming" ? "收到" : "转给";
+  const purpose = tx.note || tx.reference;
+  const purposeText = purpose ? `，${purpose}` : "";
+  return `- ${tx.datetime.slice(0, 10)}：${verb}${who} ${MOCK_BANK.user_account.currency} ${tx.amount}${purposeText}`;
+}
+
+// queryTarget: "all" | "contact"（"balance"另外单独处理，不走这个函数）
+// queryScope: "latest"（只要最近一笔）| "all"（列出多笔）
+function summarizeFilteredActivity(queryTarget, contactName, queryScope) {
+  const view = liveBankView();
+  const txs = view.recent_transactions || [];
+  if (!txs.length) return "我没查到账户记录。";
+  const byId = {}; MOCK_BANK.contacts.forEach(c => byId[c.contact_id] = c.name);
+
+  let filtered = txs;
+  let subjectLabel = "最近的账户记录";
+
+  if (queryTarget === "contact" && contactName) {
+    const guessed = guessRecipientId(contactName);
+    const contactId = validRecipientId(guessed, null, contactName);
+    if (!contactId) return `我这边没查到跟"${contactName}"相关的记录。`;
+    filtered = txs.filter(tx => tx.recipient_id === contactId || tx.sender_id === contactId);
+    subjectLabel = `跟${byId[contactId]}相关的记录`;
+  }
+
+  filtered = filtered.slice().sort((a, b) => new Date(b.datetime) - new Date(a.datetime));
+  filtered = queryScope === "latest" ? filtered.slice(0, 1) : filtered.slice(0, 6);
+
+  if (!filtered.length) return `我没查到${subjectLabel}。`;
+  return subjectLabel + "：\n" + filtered.map(tx => formatTxLine(tx, byId)).join("\n");
+}
+
+function reportBalance() {
+  return `您现在的余额是 ${MOCK_BANK.user_account.currency} ${state.balance.toLocaleString("zh-CN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}。`;
+}
+
+function buildSessionSummary() {
+  if (!state.sessionTransactions.length) return null;
+  const byId = {}; MOCK_BANK.contacts.forEach(c => byId[c.contact_id] = c.name);
+  const lines = state.sessionTransactions.map(function (tx) {
+    const who = tx.recipient_id ? (byId[tx.recipient_id] || tx.recipient_name || "对方") : (tx.recipient_name || "对方");
+    const noteText = tx.note ? `（备注：${tx.note}）` : "";
+    return `- 转给${who}：${tx.currency} ${Number(tx.amount).toFixed(2)}${noteText}`;
+  });
+  return "本次为您完成了以下操作：\n" + lines.join("\n") +
+    `\n当前余额：${MOCK_BANK.user_account.currency} ${state.balance.toLocaleString("zh-CN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+function applyBatchResult(r, userText) {
+  state.batchFinishDone = false; // 新一批进来，收尾标记归零
+  state.finishUpDone = false;
+  const rawActions = Array.isArray(r.actions) ? r.actions : [];
+  const transferActions = rawActions.filter(a => a.intent === "transfer");
+  const readyQueries = rawActions.filter(a => a.intent === "query" && a.status === "ready");
+
+  let resolvedSomething = readyQueries.length > 0;
+  let disambiguationTriggered = false;
+  let dedupedReady = [];
+  let pendingAsks = [];
+
+  if (transferActions.length) {
+    const resolvedAmounts = resolveRelativeAmounts(transferActions, state.balance);
+    const validated = resolvedAmounts.map(function (a) {
+      let safeId = validRecipientId(a.recipient_id, a.recipient_account_number, a.recipient_name);
+      if (!safeId && a.recipient_name) {
+        const guessed = guessRecipientId(a.recipient_name);
+        safeId = validRecipientId(guessed, a.recipient_account_number, a.recipient_name);
+      }
+      return Object.assign({}, a, { recipient_id: safeId || null });
+    });
+
+    const trulyReady = [];
+    validated.forEach(function (a) {
+      const needsDisambiguation = a.recipient_name && !a.recipient_id && !a.recipient_confirmed_new;
+      if (needsDisambiguation) {
+        const candidateOptions = MOCK_BANK.contacts.map(c => c.name).concat(["都不是，这是新的人"]);
+        pendingAsks.push({
+          reply: `我这边没能确定"${a.recipient_name}"是不是您常联系的人——是这几位里的哪一位，还是一位新的朋友？`,
+          options: candidateOptions,
+          // 把这笔转账的基本信息带上——用户选了"都不是"之后下一轮还需要问
+          // 账号/银行，没有这份草稿就完全不知道是在针对谁、转多少钱了
+          recipientDraft: { recipient_name: a.recipient_name, amount: Number(a.amount) || 0, note: a.note || null, recipient_account_number: a.recipient_account_number || null, recipient_bank_name: a.recipient_bank_name || null }
+        });
+        return;
+      }
+      const isConfirmedNew = a.recipient_confirmed_new || (!a.recipient_id && a.recipient_name);
+      if (isConfirmedNew && !a.recipient_id && !a.recipient_account_number) {
+        pendingAsks.push({
+          reply: `转给${a.recipient_name || "这位新朋友"}之前，能提供一下对方的银行账号吗？`, options: [],
+          // 带上这一笔已经知道的信息（名字/金额/备注/已经拿到的银行名，如果有）——
+          // 不然用户下一句只回答"账号是多少多少"，系统answer完全接不住，
+          // 只能靠这份草稿把碎片信息拼回一笔完整的转账。
+          recipientDraft: { recipient_name: a.recipient_name, amount: Number(a.amount) || 0, note: a.note || null, recipient_account_number: null, recipient_bank_name: a.recipient_bank_name || null }
+        });
+        return;
+      }
+      if (isConfirmedNew && !a.recipient_id && !a.recipient_bank_name) {
+        pendingAsks.push({
+          reply: `转给${a.recipient_name || "这位新朋友"}是哪家银行的账户？`, options: [],
+          recipientDraft: { recipient_name: a.recipient_name, amount: Number(a.amount) || 0, note: a.note || null, recipient_account_number: a.recipient_account_number || null, recipient_bank_name: null }
+        });
+        return;
+      }
+      if (a.status === "ready") trulyReady.push(a);
+    });
+
+    // 硬性查重：不管模型这一轮为什么又把某笔转账重新报了一遍（哪怕只是
+    // 复述历史），只要这笔"收款人+金额"已经在待确认队列里、或者这个
+    // session已经真的转过了，一律拒绝再次入队。
+    function isDuplicate(recipientId, recipientName, amount) {
+      const amt = Number(amount);
+      const inPending = state.pendingQueue.some(function (item) {
+        return Number(item.amount) === amt &&
+          (recipientId ? item.recipient_id === recipientId : item.recipient_name === recipientName);
+      });
+      if (inPending) return true;
+      return state.sessionTransactions.some(function (tx) {
+        return Number(tx.amount) === amt &&
+          (recipientId ? tx.recipient_id === recipientId : tx.recipient_name === recipientName);
+      });
+    }
+    const dupNames = [];
+    dedupedReady = trulyReady.filter(function (a) {
+      if (isDuplicate(a.recipient_id, a.recipient_name, a.amount)) { dupNames.push(a.recipient_name || "这笔"); return false; }
+      return true;
+    });
+
+    // ---- 现在才决定这一轮要显示什么"开场白"：这批里如果同时有"马上
+    // 能处理的/已经提过的"和"要往后放的"，不完全信任模型自己写的reply
+    // ——它很可能已经把要往后放的那几笔细节也问出来了，等于提前泄了
+    // 底、把用户弄糊涂。这种情况下改由代码自己写一句话，一个字都不提
+    // 要往后放的那几笔。注意：即使这批"马上能处理的"全部被查重挡掉了
+    // （dedupedReady变成空的），只要trulyReady或者dupNames不是空的，
+    // 说明模型的原话大概率还是提到过这些名字，一样要用代码接管，不能
+    // 只看dedupedReady是不是空的。
+    const hasMixedContext = pendingAsks.length > 0 && (trulyReady.length > 0 || dupNames.length > 0);
+    const displayReply = hasMixedContext
+      ? (dedupedReady.length
+          ? `好的，我先帮您把转给${dedupedReady.map(a => a.recipient_name || "对方").join("、")}的这几笔处理好，别的稍后再跟您确认细节。`
+          : "好的，收到了，其他还需要补充信息的部分，我稍后再跟您确认。")
+      : r.reply;
+
+    addMsg(displayReply, "agent");
+
+    if (dupNames.length) addMsg(`${dupNames.join("、")}这几笔看起来已经处理过、或者正在等您确认了，不会重复执行。`, "sys");
+
+    if (dedupedReady.length) {
+      resolvedSomething = true;
+      const txList = dedupedReady.map(function (a) {
+        const contact = a.recipient_id ? MOCK_BANK.contacts.find(c => c.contact_id === a.recipient_id) : null;
+        return {
+          intent: "transfer",
+          recipient_id: a.recipient_id || null,
+          recipient_name_given: a.recipient_name || null,
+          recipient_account_number: contact ? contact.account_number : (a.recipient_account_number || null),
+          amount: Number(a.amount) || 0,
+          user_message: a.raw_snippet || userText,
+          manipulation_signal: a.manipulation_signal || "none",
+          manipulation_evidence: a.manipulation_evidence || ""
+        };
+      });
+      const riskResults = calculateBatchRisk(txList, liveBankView());
+      dedupedReady.forEach(function (a, i) {
+        const contact = a.recipient_id ? MOCK_BANK.contacts.find(c => c.contact_id === a.recipient_id) : null;
+        var queueId = randomId();
+        state.pendingQueue.push({
+          id: queueId, recipient_name: a.recipient_name, recipient_id: a.recipient_id,
+          recipient_account_number: contact ? contact.account_number : (a.recipient_account_number || null),
+          registered_name: contact ? contact.registered_name : null,
+          bank_name: contact ? contact.bank_name : (a.recipient_bank_name || null),
+          note: a.note || null,
+          amount: Number(a.amount) || 0, risk: riskResults[i]
+        });
+        console.log("[risk]", a.recipient_name, riskResults[i]);
+        // 审计日志：记录模型草稿 + 风险打分结果 + 入队
+        appendAuditLog({
+          raw_user_input: userText,
+          model_draft: a,
+          risk_result: riskResults[i],
+          outcome: "queued",
+          recipient: a.recipient_name || null,
+          amount: Number(a.amount) || 0,
+          queue_item_id: queueId,
+          detail: "Transfer action parsed, risk-scored, and queued for user confirmation"
+        });
+      });
+    }
+  } else {
+    // 这一轮没有转账动作（可能纯查询/闲聊），照常显示模型自己的reply。
+    addMsg(r.reply, "agent");
+  }
+
+  readyQueries.forEach(function (q) {
+    if (q.query_target === "balance") {
+      // 防御：模型有时候会在没被问到余额的这一轮，又顺手带一个查余额
+      // 的动作出来（比如刚查完余额、这一轮只说了"转账"两个字，它却又
+      // 报了一次余额）。如果上一条agent消息本身就是余额播报、而这一轮
+      // 用户的话里压根没提余额，判定是误触发，不重复显示。
+      const lastAgentMsg = state.displayLog.slice(0, -1).reverse().find(m => m.who === "agent");
+      const justReportedBalance = lastAgentMsg && lastAgentMsg.text.indexOf("余额是") !== -1;
+      const userMentionedBalance = /余额|balance/i.test(userText);
+      if (justReportedBalance && !userMentionedBalance) {
+        console.warn("[guard] suppressed a likely-hallucinated duplicate balance query action");
+        return;
+      }
+      addMsg(reportBalance(), "agent");
+    } else {
+      addMsg(summarizeFilteredActivity(q.query_target || "all", q.query_contact_name, q.query_scope || "all"), "agent");
+    }
+  });
+
+  if (pendingAsks.length) {
+    const stillHasNonHighPending = state.pendingQueue.some(i => i.risk.risk_level !== "HIGH");
+    if (stillHasNonHighPending) {
+      state.deferredQuestions = state.deferredQuestions.concat(pendingAsks);
+    } else if (!disambiguationTriggered) {
+      disambiguationTriggered = true;
+      const first = pendingAsks[0];
+      addMsg(first.reply, "sys");
+      addOptions(first.options);
+      state.unresolvedQuestion = first;
+      state.deferredQuestions = state.deferredQuestions.concat(pendingAsks.slice(1));
+    }
+  }
+
+  const hasUnfinishedBusiness = state.pendingQueue.length > 0 || state.deferredQuestions.length > 0 || !!state.unresolvedQuestion;
+
+  if (!disambiguationTriggered) {
+    if (r.conversationEnding) {
+      // 用户在收尾——但不能因为他说了句"谢谢"就假装什么都处理完了，
+      // 还有事没办完的话必须先提醒，不能悄悄放过。
+      if (!hasUnfinishedBusiness) state.unresolvedQuestion = null;
+    } else if (r.awaitingAnswer && !pendingAsks.length) {
+      // 只有这一轮真的只有"一个"待补充信息的问题时，才把 r.reply 当成
+      // unresolvedQuestion。如果这一轮是 mommy/alxe/NTU/charles 这种
+      // ready+incomplete混在一起的批次，真正该追问的内容已经分别进了
+      // deferredQuestions（或者上面disambiguation那条路已经单独设过
+      // unresolvedQuestion了）——这时候的 r.reply 只是"先处理好、稍后
+      // 再确认"这种没有选项、答不了的提示语，绝不能塞进
+      // unresolvedQuestion，否则 checkDeferredQuestions() 里
+      // "!state.unresolvedQuestion" 这个条件会被永久卡死，alxe/NTU/
+      // charles 那些真正的追问就再也浮不出来了。
+      state.unresolvedQuestion = { reply: r.reply, options: r.options };
+    } else if (resolvedSomething) {
+      state.unresolvedQuestion = null;
+    }
+    addOptions(r.options);
+  }
+
+  // 查完余额/记录之后不能什么反应都没有——跟转账那几条路一样，给个
+  // 能接得住话的按钮，不留死路。
+  if (readyQueries.length && !disambiguationTriggered && !r.conversationEnding &&
+      !state.pendingQueue.length && (!r.options || !r.options.length)) {
+    addOptions(["转账", "查余额", "没有了，谢谢"]);
+  }
+
+  // 调试：把处理结果打印到控制台，方便排查"为什么不浮出待处理项"
+  console.log("[applyBatchResult]", {
+    pendingQueueLen: state.pendingQueue.length,
+    deferredQuestionsLen: state.deferredQuestions.length,
+    pendingAsksLen: pendingAsks.length,
+    dedupedReadyLen: dedupedReady.length,
+    unresolvedQuestion: !!state.unresolvedQuestion
+  });
+
+  renderPendingQueue();
+
+  if (r.conversationEnding) {
+    if (hasUnfinishedBusiness) {
+      const parts = [];
+      if (state.pendingQueue.length) parts.push(`${state.pendingQueue.map(i => i.recipient_name || "有一笔").join("、")}还在等您确认`);
+      if (state.deferredQuestions.length || state.unresolvedQuestion) parts.push("还有些信息需要您补充才能继续");
+      addMsg("在结束之前，还有件事想提醒您：" + parts.join("；") + "。要现在处理，还是先放着，下次再继续？", "sys");
+      if (!state.unresolvedQuestion) checkDeferredQuestions();
+    } else {
+      const summary = buildSessionSummary();
+      if (summary) addMsg(summary, "sys");
+    }
+  }
+}
+
+function friendlyErrorMessage(e) {
+  const msg = String((e && e.message) || "");
+  console.warn("[debug]", msg);
+  if (msg.startsWith("TIMEOUT")) return "网络有点慢，我没等到回音。要不再说一次？";
+  if (msg.startsWith("API_ERROR 401") || msg.startsWith("API_ERROR 403")) return "AI 服务的 key 好像不对或者已经失效了，麻烦点右上角「重新开始」，重新输入一次 key。";
+  if (msg.startsWith("API_ERROR 429")) return "AI 服务这会儿请求有点多（免费额度可能被打满了），稍等一会儿再试一次。";
+  if (msg.startsWith("NETWORK")) return "网络好像断了一下，检查一下网络，再试一次。";
+  return "抱歉，刚才这边出了点小状况（" + (msg.slice(0, 60) || "未知原因") + "），要不再说一次？";
+}
+
+async function handleUser(text) {
+  if (state.busy) return;
+  cancelTTS(); // 用户有新动作，打断当前语音播报
+  resetIdleTimer();
+  addMsg(text, "user");
+  // Prompt Injection 检测：在调用模型之前先跑一下，检测到也不阻止处理，
+  // 只是低调标记 + console.warn。跟风险打分完全独立，不碰任何分数逻辑。
+  var injection = detectPromptInjection(text);
+  if (injection.detected) flagInjection(injection.matched);
+  showTyping(); setBusy(true);
+  let r;
+  try { r = await askModel(text); }
+  catch (e) {
+    console.error("askModel failed:", e);
+    hideTyping(); setBusy(false);
+    addMsg(friendlyErrorMessage(e), "sys");
+    return;
+  }
+  hideTyping(); setBusy(false);
+  const hadUnresolvedBefore = state.unresolvedQuestion;
+  applyBatchResult(r, text);
+  // 之前有个问题还没解决，这一轮聊的是别的事、模型没有重新提起——
+  // 不能让它就这样被忘掉，代码主动把它带回来。
+  if (hadUnresolvedBefore && state.unresolvedQuestion === hadUnresolvedBefore) {
+    addMsg("对了，刚才想请您确认一下：", "sys");
+    addMsg(state.unresolvedQuestion.reply, "agent");
+    addOptions(state.unresolvedQuestion.options);
+  }
+  resetIdleTimer();
+}
+
+async function startConversation() {
+  // 打招呼这件事不需要模型来判断该说什么——写死一句问候语，完全不会
+  // 有"模型把引导语误解成别的意思"这种问题，也省一次API请求。
+  addMsg("您好！我是 KLXG Helps You，随时为您办理转账或查询。您想先做什么？", "agent");
+  addOptions(["我要转账", "查询余额", "查看最近的交易记录"]);
+  resetIdleTimer();
+}
+
+let idleTimer = null, idleLevel = 0, lastActivity = Date.now();
+let testMode = (function () { try { var s = localStorage.getItem("testMode"); return s === null ? true : s === "1"; } catch (e) { return true; } })(); // 默认开启（关掉闲置提醒），刷新后记住用户的选择
+function resetIdleTimer() {
+  lastActivity = Date.now(); idleLevel = 0;
+  clearTimeout(idleTimer);
+  if (testMode) return; // 测试模式下不排定任何自动请求
+  idleTimer = setTimeout(onIdle, 300000); // 第一次：5分钟静默后
+}
+async function onIdle() {
+  if (state.busy || testMode) return;
+  const seconds = Math.round((Date.now() - lastActivity) / 1000);
+  idleLevel++;
+
+  if (state.unresolvedQuestion) {
+    const prefix = idleLevel === 1 ? "您还在吗？刚才想请您确认一下：" : "还有件事想请您看一下：";
+    addMsg(prefix, "sys");
+    addMsg(state.unresolvedQuestion.reply, "agent");
+    addOptions(state.unresolvedQuestion.options);
+    if (idleLevel < 3) { idleTimer = setTimeout(onIdle, idleLevel === 1 ? 480000 : 600000); return; } // 8分钟 / 10分钟
+    return;
+  }
+
+  if (idleLevel === 1) {
+    try {
+      const messages = buildMessages("（静默）", `\n\n【静默提示 · 第1次】静默了${seconds}秒。如果流程刚开始，reply返回空字符串""；如果进行到一半，说一句轻的话，不问问题不给按钮。只输出：{"reply":"..."}`);
+      const raw = await callModel(messages); const rr = safeParseJSON(raw);
+      if (rr.reply && rr.reply.trim() !== "") addMsg(rr.reply, "agent");
+    }
+    catch (e) { console.error("idle 1 failed:", e); }
+    idleTimer = setTimeout(onIdle, 480000); return; // 8分钟
+  }
+  if (idleLevel === 2) {
+    try {
+      const messages = buildMessages("（静默）", `\n\n【静默提示 · 第2次】静默了${seconds}秒。温和地问继续还是先停下，给2个按钮。只输出：{"reply":"...","options":[...]}`);
+      const raw = await callModel(messages); const rr = safeParseJSON(raw);
+      if (rr.reply && rr.reply.trim() !== "") { addMsg(rr.reply, "agent"); addOptions(rr.options); }
+    }
+    catch (e) { console.error("idle 2 failed:", e); }
+    idleTimer = setTimeout(onIdle, 600000); return; // 10分钟
+  }
+  if (idleLevel === 3) {
+    try {
+      const messages = buildMessages("（静默）", `\n\n【静默提示 · 第3次 · 结束】静默了${seconds}秒。温和告别，不问问题不给按钮。只输出：{"reply":"..."}`);
+      const raw = await callModel(messages); const rr = safeParseJSON(raw);
+      if (rr.reply && rr.reply.trim() !== "") addMsg(rr.reply, "agent");
+    }
+    catch (e) { console.error("idle 3 failed:", e); }
+    const summary = buildSessionSummary();
+    if (summary) addMsg(summary, "sys");
+  }
+}
+
+// ===== Zero-Trust Gateway（框架） =====
+// 核心原则：网关本身不信任"对话内容说了什么"，只认"有没有一个真正由
+// 生物识别通过那一刻生成的、没被用过的签名"。对话、风险打分、候选人
+// 确认……这些都只是生成一份"草稿"；草稿本身，不管内容看起来多么齐全、
+// 多么像是用户同意了，都不能直接变成一次真实转账——唯一能让草稿变成
+// 执行动作的，是这个签名。这是DBS题目原文点名要求的机制，不是可选项。
+const usedSignatures = new Set(); // 已用签名记录，防止同一个签名被重放使用第二次
+function generateApprovalSignature(item) {
+  // 真实系统这里会是非对称密钥签名（比如设备的安全芯片私钥签名）；这
+  // 里用确定性哈希模拟同样的作用——签名内容绑死这一笔的收款人+金额+
+  // 时间戳，换一笔钱或者换个时间，签名就对不上，不能挪用。
+  const payload = `${item.recipient_id || item.recipient_name}|${item.amount}|${Date.now()}`;
+  let hash = 0;
+  for (let i = 0; i < payload.length; i++) { hash = ((hash << 5) - hash + payload.charCodeAt(i)) | 0; }
+  return "SIG-" + Math.abs(hash).toString(16) + "-" + Date.now().toString(36);
+}
+// ===== Validation Agent（框架） =====
+// 跟风险打分是两件不同的事：风险打分回答"这笔像不像有问题"；这一层
+// 回答"这笔在结构上站不站得住脚"——余额够不够、账号有没有跟记录对上、
+// 有没有什么东西在流程中途被破坏了。就算前面每一步都判断对了，执行前
+// 这里还会单独核一遍，属于跟主流程独立、专门卡在"确认之后、真正扣钱
+// 之前"这个位置的最后一道结构性检查，不依赖risk engine是否正确。
+function validateBeforeExecution(item) {
+  const errors = [];
+  const amt = Number(item.amount);
+  if (!(amt > 0) || !isFinite(amt)) errors.push("金额不合法");
+  if (amt > state.balance) errors.push("余额不足，无法完成这笔转账");
+  if (item.recipient_id) {
+    const contact = MOCK_BANK.contacts.find(c => c.contact_id === item.recipient_id);
+    if (!contact) errors.push("收款人记录在核实时找不到了");
+    else if (item.recipient_account_number && item.recipient_account_number !== contact.account_number) errors.push("账号跟联系人记录不一致");
+  } else {
+    if (!item.recipient_account_number) errors.push("新收款人缺少银行账号");
+    if (!item.bank_name && !item.recipient_bank_name) errors.push("新收款人缺少开户银行名称");
+  }
+  if (item.risk && item.risk.risk_level === "HIGH") errors.push("高风险交易不能跳过人工核实直接执行");
+  return { valid: errors.length === 0, errors: errors };
+}
+
+function mockTransferAPI(signature) {
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      // 网关拒绝没有签名的请求——这一步跟"这笔转账风险高不高"完全无关，
+      // 纯粹是"有没有经过生物识别授权"这一件事。
+      if (!signature) { reject(new Error("GATEWAY_REJECTED: missing cryptographic signature — no biometric approval on record")); return; }
+      if (usedSignatures.has(signature)) { reject(new Error("GATEWAY_REJECTED: signature already used (replay blocked)")); return; }
+      usedSignatures.add(signature);
+      resolve({ ok: true, id: "TXN" + Date.now(), signature: signature });
+    }, 600);
+  });
+}
+function buildReceiptText(contact, recipientName, accountNumber, registeredName, bankName, note, amount, txId, signature) {
+  const now = new Date();
+  return [
+    "===== KLXG Helps You · 转账回执 =====",
+    "交易号：" + txId, "时间：" + now.toLocaleString("zh-CN", { hour12: false }),
+    "收款人（称呼）：" + (recipientName || (contact ? contact.name : "-")),
+    "账户登记姓名：" + (contact ? (contact.registered_name || "-") : (registeredName || "无法核实")),
+    "银行：" + (contact ? (contact.bank_name || "-") : (bankName || "-")),
+    "收款账号：" + (contact ? contact.account_number : (accountNumber || "-")),
+    "金额：" + MOCK_BANK.user_account.currency + " " + Number(amount).toFixed(2),
+    "备注：" + (note || "无"),
+    "生物识别授权签名：" + (signature || "-"),
+    "状态：已完成", "=============================",
+    "（此回执为原型演示生成，非真实银行单据）"
+  ].join("\n");
+}
+function downloadReceipt(text, txId) {
+  // 下载这个动作本身可能在某些环境下失败（比如直接双击打开HTML、用
+  // file:// 协议在跑，浏览器对这种来源的下载安全限制比较严格）——
+  // 这个函数绝不能因为下载失败就往外抛错，不然会把调用它的那个流程
+  // 后面该做的事情（比如把压着的问题带出来）一起带崩。
+  try {
+    const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = "receipt_" + txId + ".txt";
+    document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+    return true;
+  } catch (e) {
+    console.warn("[downloadReceipt] 下载失败，可能是用 file:// 直接打开页面导致的浏览器限制：", e.message);
+    return false;
+  }
+}
+
+// ===== 结构化审计日志 =====
+// 这一层只"记录"，不"决策"——不改动任何已有函数的判断逻辑、返回值或执行顺序。
+// 只在旁边多记一笔，让每一步操作都可追溯、可审计。
+function appendAuditLog(entry) {
+  if (!state.auditLog) state.auditLog = [];
+  // 补全必填字段，保证每条记录结构一致
+  var record = {
+    timestamp: new Date().toISOString(),
+    raw_user_input: entry.raw_user_input || null,
+    model_draft: entry.model_draft || null,
+    risk_result: entry.risk_result || null,
+    validation_result: entry.validation_result || null,
+    approval_signature: entry.approval_signature || null,
+    outcome: entry.outcome || null,
+    recipient: entry.recipient || null,
+    amount: entry.amount != null ? entry.amount : null,
+    queue_item_id: entry.queue_item_id || null,
+    transaction_id: entry.transaction_id || null,
+    detail: entry.detail || null
+  };
+  state.auditLog.push(record);
+  saveSession();
+}
+function downloadAuditLog() {
+  try {
+    var text = JSON.stringify(state.auditLog || [], null, 2);
+    var blob = new Blob([text], { type: "application/json;charset=utf-8" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url; a.download = "audit_log_" + new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-") + ".json";
+    document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+  } catch (e) {
+    console.warn("[downloadAuditLog] 下载失败，可能是用 file:// 直接打开页面导致的浏览器限制：", e.message);
+    addMsg("审计日志导出失败了，可能是直接双击打开HTML文件导致的浏览器限制——建议用本地服务器打开页面再试。", "sys");
+  }
+}
+function addReceiptOption(text, txId) {
+  // "下载文件"这个动作本身可以重复做，不设限制——真正要保证只做一次的，
+  // 是"对话往下走"这件事（加消息、弹菜单、检查有没有压着的问题）。
+  // 这两件事分开用各自的标记控制，不要混在一起。
+  //
+  // 但同一批可能有多笔转账同时完成、各自弹一个 receipt 面板（比如用户
+  // 同时 approve 了 Alex 和 Mom 两笔）。每个面板有自己独立的 acknowledged
+  // 控制下载按钮，但"收尾对话"（finishUp）必须全批次只走一次——所以用
+  // 一个全局标记 batchFinishDone 来兜底：同一批里第二个面板被 acknowledge
+  // 时，只下载文件，不再重复弹"还需要什么帮忙吗"。
+  let acknowledged = false;
+  const wrap = document.createElement("div"); wrap.className = "options";
+  const yes = document.createElement("div"); yes.className = "opt"; yes.textContent = "📄 下载回执";
+  const no = document.createElement("div"); no.className = "opt"; no.textContent = "不用了，谢谢";
+
+  // "还需要什么帮忙吗+菜单+检查压着的问题"只在这一批安全的都处理完了
+  // 才出现一次——不是每完成一笔就问一次，那样同一批里有几笔就重复几
+  // 次，会盖住还没处理的内容。
+  function finishUp() {
+    if (state.pendingQueue.length) return; // 这一批还有别的安全项在等，先不收尾
+    // 先把压着的 deferredQuestions（缺账号/银行这种聊天追问）带回来，
+    // 别让"还需要什么帮忙吗"这种闲聊选项把它们埋了——否则用户会
+    // 误以为这一批已经全部处理完了。
+    checkDeferredQuestions();
+    if (state.unresolvedQuestion) return; // 已经把压着的问题带回来了，先让用户回答
+    if (state.deferredQuestions.length) return; // 还有追问没浮出来，先别收尾
+    // 还有没浮现的 HIGH 风险项？把提示先放出来，别装作没事。
+    const stuckHigh = state.pendingQueue.some(i => i.risk.risk_level === "HIGH");
+    if (stuckHigh) {
+      addMsg("还有些风险较高的转账没处理完，需要您看一下。", "agent");
+      return;
+    }
+    // 菜单只弹一次——用 state.finishUpDone 跨面板共享
+    if (state.finishUpDone) return;
+    state.finishUpDone = true;
+    addMsg("还需要什么帮忙吗？", "agent");
+    addOptions(["转账", "查余额", "没有了，谢谢"]);
+  }
+
+  yes.onclick = function () {
+    const downloaded = downloadReceipt(text, txId); // 每次点都真的重新下载一次，不限制次数；downloadReceipt内部已经兜底不会抛错
+    if (acknowledged) return; // 这个面板自己的"往下走"只做一次
+    acknowledged = true;
+    if (no.parentNode) no.remove(); // 已经下载了，"不用了"这个选项没意义了，拿掉
+    // "下载好了"这条提示全批次只加一次，但 finishUp() 每个面板都要调——
+    // 因为前一个面板点的时候可能 pendingQueue 还有别的项没处理完，finishUp
+    // 直接 return 了；等到后一个面板再点时 pendingQueue 才空，这时
+    // checkDeferredQuestions() 才真正能触发，把 NTU/James 那些压着的
+    // 追问浮出来。这一步不管下载本身成不成功都要走到，不能被下载失败卡住。
+    if (!state.batchFinishDone) {
+      state.batchFinishDone = true;
+      addMsg(downloaded ? "好的，回执已经帮您下载好了。" : "回执下载好像失败了（可能是直接用文件打开页面导致的浏览器限制），不过转账本身是成功的，不影响。", "agent");
+    }
+    finishUp();
+  };
+  no.onclick = function () {
+    if (acknowledged) return;
+    acknowledged = true;
+    // 不删整个 wrap——只把"不用了"这个选项自己拿掉，保留"下载回执"按钮。
+    // 万一用户拒绝之后又改主意想下载，还能再点。yes.onclick 会判断
+    // batchFinishDone 来避免重复加"下载好了"的消息。
+    if (no.parentNode) no.remove();
+    if (!state.batchFinishDone) {
+      state.batchFinishDone = true;
+      addMsg("好的，不留回执。", "agent");
+    }
+    finishUp();
+  };
+  wrap.appendChild(yes); wrap.appendChild(no);
+  chat.appendChild(wrap); chat.scrollTop = chat.scrollHeight;
+}
+
+document.getElementById("facePass").onclick = async function () {
+  const item = faceModalTarget; faceModalTarget = null;
+  faceModal.classList.remove("show");
+  if (!item) return;
+  addMsg("识别通过，正在提交…", "sys");
+  // Validation Agent：跟risk engine独立的最后一道结构性检查，任何一
+  // 项没过，直接拦下来，不往后走。
+  const validation = validateBeforeExecution(item);
+  if (!validation.valid) {
+    addMsg(`这笔在最后核实的时候被拦下来了：${validation.errors.join("；")}。没有执行，账户没有变动。`, "sys");
+    console.error("[validation]", validation.errors);
+    appendAuditLog({ queue_item_id: item.id || null, outcome: "rejected_by_validation", validation_result: validation, recipient: item.recipient_name || null, amount: Number(item.amount) || 0, risk_result: item.risk || null, detail: "Validation Agent blocked execution: " + validation.errors.join("; ") });
+    checkDeferredQuestions(); // 不管这一笔成没成，都不能让压着的问题卡死在这里
+    return;
+  }
+  // 签名只在这一刻——生物识别真的通过之后——才被生成，网关不认任何
+  // 更早之前的"对话里说了什么"。
+  const signature = generateApprovalSignature(item);
+  let res;
+  try {
+    res = await mockTransferAPI(signature);
+  } catch (e) {
+    addMsg("提交被网关拒绝了，没有生成有效的授权签名，这笔没有执行，账户没有变动。请重新确认再试一次。", "sys");
+    console.error("[gateway]", e.message);
+    appendAuditLog({ queue_item_id: item.id || null, outcome: "rejected_by_gateway", approval_signature: signature, validation_result: validation, recipient: item.recipient_name || null, amount: Number(item.amount) || 0, risk_result: item.risk || null, detail: "Gateway rejected: " + e.message });
+    checkDeferredQuestions();
+    return;
+  }
+  const contact = item.recipient_id ? MOCK_BANK.contacts.find(c => c.contact_id === item.recipient_id) : null;
+  const amountSent = Number(item.amount) || 0;
+  state.balance -= amountSent;
+  state.sessionTransactions.push({
+    transaction_id: res.id, datetime: new Date().toISOString(), type: "outgoing",
+    recipient_id: item.recipient_id || null, recipient_name: item.recipient_name || null,
+    recipient_account_number: contact ? contact.account_number : (item.recipient_account_number || null),
+    bank_name: contact ? contact.bank_name : (item.bank_name || null),
+    note: item.note || null,
+    amount: amountSent, currency: MOCK_BANK.user_account.currency,
+    status: "completed", reference: item.note || null, approval_signature: res.signature
+  });
+  appendAuditLog({ queue_item_id: item.id || null, outcome: "executed", approval_signature: res.signature, validation_result: validation, transaction_id: res.id, recipient: item.recipient_name || null, amount: amountSent, risk_result: item.risk || null, detail: "Transfer executed successfully via mockTransferAPI" });
+  const receiptText = buildReceiptText(contact, item.recipient_name, item.recipient_account_number, item.registered_name, item.bank_name, item.note, amountSent, res.id, res.signature);
+  const bankLine = item.bank_name ? `${item.bank_name} ` : "";
+  const accLine = contact ? contact.account_number : (item.recipient_account_number || "");
+  const regLine = item.registered_name ? `，登记姓名 ${item.registered_name}` : "";
+  addMsg(`已经帮你把${MOCK_BANK.user_account.currency} ${amountSent.toFixed(2)}转给${bankLine}${item.recipient_name || (contact ? contact.name : "对方")}${accLine ? "（账号 " + accLine + regLine + "）" : ""}了，交易号 ${res.id}。账户余额还剩 ${MOCK_BANK.user_account.currency} ${state.balance.toLocaleString("zh-CN",{minimumFractionDigits:2,maximumFractionDigits:2})}。`, "agent");
+  addMsg("要不要留个回执，方便以后核对？", "sys");
+  // 这一笔真的完成了，把它从待处理队列移出去，否则 finishUp() 看到
+  // pendingQueue 还有长度就一直 return，压着的追问（缺账号/银行这种）
+  // 就永远不会浮出来
+  state.pendingQueue = state.pendingQueue.filter(i => i.id !== item.id);
+  renderPendingQueue();
+  addReceiptOption(receiptText, res.id);
+  saveSession();
+};
+document.getElementById("faceFail").onclick = function () {
+  const item = faceModalTarget; faceModalTarget = null;
+  faceModal.classList.remove("show");
+  addMsg(`好的，先不弄${item ? ("给" + (item.recipient_name || "对方") + "这笔") : ""}了。回头需要再叫我。`, "agent");
+  if (item) appendAuditLog({ queue_item_id: item.id || null, outcome: "face_recognition_cancelled", recipient: item.recipient_name || null, amount: Number(item.amount) || 0, risk_result: item.risk || null, detail: "User cancelled at face recognition step" });
+  checkDeferredQuestions();
+};
+
+const LANGS = [{ code: "zh-CN", label: "中" }, { code: "en-US", label: "EN" }, { code: "ms-MY", label: "BM" }, { code: "it-IT", label: "IT" }];
+let langIndex = 0;
+langBtn.onclick = function () { langIndex = (langIndex + 1) % LANGS.length; langBtn.textContent = LANGS[langIndex].label; if (recognition) recognition.lang = LANGS[langIndex].code; };
+let recognition = null, listening = false;
+if ("webkitSpeechRecognition" in window || "SpeechRecognition" in window) {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  recognition = new SR(); recognition.continuous = false; recognition.interimResults = false; recognition.lang = LANGS[langIndex].code;
+  recognition.onresult = function (e) { input.value = e.results[0][0].transcript; send(); };
+  recognition.onerror = function (e) { console.error("speech error:", e); stopListening(); };
+  recognition.onend = function () { stopListening(); };
+}
+function startListening() {
+  if (!recognition) { addMsg("这个浏览器好像不支持语音，你可以打字告诉我。", "sys"); return; }
+  try { recognition.start(); listening = true; micBtn.classList.add("listening"); } catch (e) { console.error(e); }
+}
+function stopListening() { listening = false; micBtn.classList.remove("listening"); try { recognition && recognition.stop(); } catch (e) {} }
+micBtn.onclick = function () { if (listening) stopListening(); else startListening(); };
+
+function send() { if (state.busy) return; const t = input.value.trim(); if (!t) return; input.value = ""; handleUser(t); }
+sendBtn.onclick = send;
+input.addEventListener("keydown", function (e) { if (e.key === "Enter") send(); });
+
+const SESSION_KEY = "dcta_session_v2";
+function saveSession() {
+  try {
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify({
+      history: state.history, balance: state.balance, displayLog: state.displayLog,
+      pendingQueue: state.pendingQueue, pendingOptions: state.pendingOptions,
+      unresolvedQuestion: state.unresolvedQuestion, sessionTransactions: state.sessionTransactions,
+      deferredQuestions: state.deferredQuestions, auditLog: state.auditLog,
+      finishUpDone: state.finishUpDone, batchFinishDone: state.batchFinishDone
+    }));
+  } catch (e) { console.warn("[session] save failed:", e.message); }
+}
+function restoreSession() {
+  let raw; try { raw = sessionStorage.getItem(SESSION_KEY); } catch (e) { return false; }
+  if (!raw) return false;
+  let snap; try { snap = JSON.parse(raw); } catch (e) { return false; }
+  if (!snap || !snap.displayLog || !snap.displayLog.length) return false;
+  state.history = snap.history || [];
+  state.balance = (typeof snap.balance === "number") ? snap.balance : MOCK_BANK.user_account.balance;
+  snap.displayLog.forEach(function (m) {
+    const div = document.createElement("div"); div.className = "msg " + m.who; div.textContent = m.text; chat.appendChild(div);
+  });
+  state.displayLog = snap.displayLog;
+  state.pendingQueue = snap.pendingQueue || [];
+  state.unresolvedQuestion = snap.unresolvedQuestion || null;
+  state.sessionTransactions = snap.sessionTransactions || [];
+  state.deferredQuestions = snap.deferredQuestions || [];
+  state.auditLog = snap.auditLog || [];
+  state.finishUpDone = typeof snap.finishUpDone === "boolean" ? snap.finishUpDone : false;
+  state.batchFinishDone = typeof snap.batchFinishDone === "boolean" ? snap.batchFinishDone : false;
+  renderPendingQueue();
+  if (snap.pendingOptions && snap.pendingOptions.options && snap.pendingOptions.options.length) {
+    state.pendingOptions = null;
+    addOptions(snap.pendingOptions.options, snap.pendingOptions.cls);
+  }
+  chat.scrollTop = chat.scrollHeight;
+  return true;
+}
+function clearSession() { try { sessionStorage.removeItem(SESSION_KEY); } catch (e) {} location.reload(); }
+document.getElementById("resetLink").onclick = function () { if (confirm("确定要清空当前对话，重新开始吗？")) clearSession(); };
+document.getElementById("auditLogLink").onclick = function () { downloadAuditLog(); };
+document.getElementById("testModeToggle").onchange = function (e) {
+  testMode = e.target.checked;
+  try { localStorage.setItem("testMode", testMode ? "1" : "0"); } catch (e2) {}
+  if (testMode) { clearTimeout(idleTimer); } else { resetIdleTimer(); }
+};
+document.getElementById("localOnlyToggle").onchange = function (e) {
+  localOnlyMode = e.target.checked;
+  try { localStorage.setItem("localOnlyMode", localOnlyMode ? "1" : "0"); } catch (e2) {}
+  updateApiStatusBadge();
+};
+
+// ── API 模式切换 tab ──────────────────────────────────────────────────────────
+function switchApiTab(mode) {
+  CONFIG.apiMode = mode;
+  document.getElementById("panelGroq").style.display = mode === "groq" ? "" : "none";
+  document.getElementById("panelAdp").style.display  = mode === "adp"  ? "" : "none";
+  const tGroq = document.getElementById("tabGroq");
+  const tAdp  = document.getElementById("tabAdp");
+  if (mode === "groq") {
+    tGroq.style.border = "2px solid #1677ff"; tGroq.style.background = "#e8f0fe"; tGroq.style.color = "#1677ff"; tGroq.style.fontWeight = "600";
+    tAdp.style.border  = "2px solid #d6dde8"; tAdp.style.background  = "#fff";    tAdp.style.color  = "#888";   tAdp.style.fontWeight  = "normal";
+  } else {
+    tAdp.style.border  = "2px solid #1677ff"; tAdp.style.background  = "#e8f0fe"; tAdp.style.color  = "#1677ff"; tAdp.style.fontWeight = "600";
+    tGroq.style.border = "2px solid #d6dde8"; tGroq.style.background = "#fff";    tGroq.style.color = "#888";   tGroq.style.fontWeight = "normal";
+  }
+}
+
+function updateApiStatusBadge() {
+  const badge = document.getElementById("apiStatusBadge");
+  if (!badge) return;
+  if (localOnlyMode) {
+    badge.textContent = "🟡 本地模式"; badge.style.background = "#fff8e1"; badge.style.color = "#b45309";
+  } else if (CONFIG.apiMode === "adp" && CONFIG.adpKey) {
+    badge.textContent = "🟢 ADP"; badge.style.background = "#e6f4ea"; badge.style.color = "#1a7f37";
+  } else if (CONFIG.apiMode === "groq" && CONFIG.apiKey) {
+    badge.textContent = "🟢 Groq"; badge.style.background = "#e6f4ea"; badge.style.color = "#1a7f37";
+  } else {
+    badge.textContent = "⚪ 无key·本地"; badge.style.background = "#f0f0f0"; badge.style.color = "#888";
+  }
+}
+
+async function validateKeyNow() {
+  const badge = document.getElementById("apiStatusBadge");
+  if (badge) { badge.textContent = "⏳ 验证中…"; badge.style.background = "#f0f0f0"; badge.style.color = "#555"; }
+  try {
+    if (CONFIG.apiMode === "adp") {
+      const res = await fetch(CONFIG.adpUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ AppKey: CONFIG.adpKey, VisitorId: "validate-test", ConversationId: "validate-test", Contents: [{ Type: "text", Text: "hi" }], Stream: "disable" })
+      });
+      if (res.ok || res.status === 400) updateApiStatusBadge();
+      else { CONFIG.adpKey = null; sessionStorage.removeItem("adp_api_key"); if (badge) { badge.textContent = "🔴 key无效"; badge.style.background = "#fce8e8"; badge.style.color = "#b91c1c"; } }
+    } else {
+      const res = await fetch(CONFIG.apiUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": "Bearer " + CONFIG.apiKey },
+        body: JSON.stringify({ model: CONFIG.model, max_tokens: 1, messages: [{ role: "user", content: "hi" }] })
+      });
+      if (res.status === 401 || res.status === 403) {
+        CONFIG.apiKey = null; sessionStorage.removeItem("groq_api_key");
+        if (badge) { badge.textContent = "🔴 key无效"; badge.style.background = "#fce8e8"; badge.style.color = "#b91c1c"; }
+      } else { updateApiStatusBadge(); }
+    }
+  } catch (e) { updateApiStatusBadge(); }
+}
+
+function tryStartWithStoredKey() {
+  const storedGroq = sessionStorage.getItem("groq_api_key");
+  const storedAdp  = sessionStorage.getItem("adp_api_key");
+  if (storedAdp) {
+    CONFIG.adpKey  = storedAdp; CONFIG.apiMode = "adp"; switchApiTab("adp");
+    updateApiStatusBadge(); // 页面加载时直接显示绿色，不再自动验证
+    const resumed = restoreSession();
+    if (!resumed) startConversation(); else resetIdleTimer();
+  } else if (storedGroq) {
+    CONFIG.apiKey  = storedGroq; CONFIG.apiMode = "groq"; switchApiTab("groq");
+    updateApiStatusBadge(); // 同上，不自动验证
+    const resumed = restoreSession();
+    if (!resumed) startConversation(); else resetIdleTimer();
+  } else {
+    keyModal.classList.add("show");
+    updateApiStatusBadge();
+  }
+}
+
+keySave.onclick = function () {
+  const isFirstKey = !CONFIG.apiKey && !CONFIG.adpKey; // 在存新key之前判断
+  if (CONFIG.apiMode === "adp") {
+    const k = document.getElementById("adpKeyInput").value.trim();
+    if (!k) return;
+    sessionStorage.setItem("adp_api_key", k); CONFIG.adpKey = k; CONFIG.adpConvId = null;
+  } else {
+    const k = document.getElementById("keyInput").value.trim();
+    if (!k) return;
+    sessionStorage.setItem("groq_api_key", k); CONFIG.apiKey = k;
+  }
+  keyModal.classList.remove("show");
+  validateKeyNow(); // 只有用户主动输key时才验证
+  if (isFirstKey) {
+    const resumed = restoreSession();
+    if (!resumed) startConversation(); else resetIdleTimer();
+  }
+  // 已有对话时不显示任何提示，也不重启——静默更新key即可
+};
+
+document.getElementById("testModeToggle").checked = testMode;
+document.getElementById("localOnlyToggle").checked = localOnlyMode;
+
+tryStartWithStoredKey();
+</script>
+</body>
+</html>
